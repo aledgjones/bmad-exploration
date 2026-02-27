@@ -1,0 +1,13 @@
+{
+  "name": "bmad-todo",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "dev": "npm --prefix frontend run dev & npm --prefix backend run dev",
+    "install-workspaces": "npm install --prefix frontend && npm install --prefix backend"
+  }
+}
