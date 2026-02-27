@@ -38,6 +38,7 @@ so that I can start building UI components with type safety and testing support.
 - Make sure the dev server runs at port 3000.
 - Coupling with backend is not needed yet, but routing will target `http://localhost:3001` once backend available; consider updating `next.config.js` with `env` variables (API_URL).
 - Add base `pages/index.tsx` with placeholder content and a sample component to verify Tailwind styles.
+- Integrate Prettier formatting: install `prettier` and ESLint plugins, add `.prettierrc`, and ensure lint script applies formatting.
 
 ### Project Structure Notes
 
@@ -89,4 +90,6 @@ Raptor mini (Preview)
 - frontend/app/globals.css
 - frontend/tests/example.test.tsx
 - frontend/.env.local.example
+- frontend/.prettierrc
+- frontend/.prettierignore
 - README.md
