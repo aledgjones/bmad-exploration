@@ -42,7 +42,7 @@ story_location: /Users/aledjones/ai-learning/bmad-todo/_bmad-output/implementati
 development_status:
   epic-1: in-progress
   1-1-initialize-monorepo-structure: done
-  1-2-scaffold-next-js-frontend-with-typescript-tailwind-eslint-and-vitest: ready-for-dev
+  1-2-scaffold-next-js-frontend-with-typescript-tailwind-eslint-and-vitest: done
   1-3-scaffold-fastify-backend-with-typescript-prisma-and-vitest: backlog
   1-4-create-docker-compose-configuration-including-frontend-backend-and-postgresql: backlog
   1-5-set-up-playwright-e2e-boilerplate-using-the-compose-stack: backlog

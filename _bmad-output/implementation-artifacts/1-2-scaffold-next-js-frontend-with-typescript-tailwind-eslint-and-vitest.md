@@ -1,6 +1,6 @@
 # Story 1.2: scaffold-next-js-frontend-with-typescript-tailwind-eslint-and-vitest
 
-Status: ready-for-dev
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -20,16 +20,16 @@ so that I can start building UI components with type safety and testing support.
 
 ## Tasks / Subtasks
 
-- [ ] Run `npx create-next-app@latest frontend --typescript --eslint --tailwind`.
-- [ ] Configure Tailwind CSS (install dependencies, add `tailwind.config.js`, update `globals.css`).
-- [ ] Add Vitest to frontend:
-  - [ ] `npm install -D vitest @testing-library/react @testing-library/jest-dom`.
-  - [ ] Add `vitest` script to package.json and sample test.
-- [ ] Verify `npm run dev` works.
-- [ ] Verify `npm run test` runs a sample passing test.
-- [ ] Commit scaffold and update root README with frontend instructions (if not already).
-- [ ] Ensure ESLint+Prettier works in frontend (linting passes).
-- [ ] Configure `.env.local` example if needed.
+- [x] Run `npx create-next-app@latest frontend --typescript --eslint --tailwind`.
+- [x] Configure Tailwind CSS (install dependencies, add `tailwind.config.js`, update `globals.css`).
+- [x] Add Vitest to frontend:
+  - [x] `npm install -D vitest @testing-library/react @testing-library/jest-dom`.
+  - [x] Add `vitest` script to package.json and sample test.
+- [x] Verify `npm run dev` works.
+- [x] Verify `npm run test` runs a sample passing test.
+- [x] Commit scaffold and update root README with frontend instructions (if not already).
+- [x] Ensure ESLint+Prettier works in frontend (linting passes).
+- [x] Configure `.env.local` example if needed.
 
 ## Dev Notes
 
@@ -59,18 +59,34 @@ so that I can start building UI components with type safety and testing support.
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Raptor mini (Preview)
 
 ### Debug Log References
 
+- saw initial empty `frontend` directory and executed `npx create-next-app` to scaffold project
+- Flattened nested `frontend/frontend` folder created by generator
+- Installed additional dependencies manually (tailwindcss, vitest, testing libraries, jsdom)
+- Created configuration files and updated package scripts
+- Validated development server and testing setup
+
 ### Completion Notes List
+
+- Project scaffold created with Next.js, TypeScript, ESLint, and Tailwind (tailwind config added manually)
+- Sample Vitest configuration and test added; test passes
+- `npm run dev` verified; dev server listens on port 3000
+- Readme updated with frontend-specific instructions
+- ESLint script enhanced and run with no errors
+- Environment example file added
 
 ### File List
 
-- frontend/ (new Next.js project)
+- frontend/ (Next.js project root)
 - frontend/package.json
 - frontend/tsconfig.json
 - frontend/tailwind.config.js
 - frontend/vitest.config.ts
-- frontend/styles/globals.css
+- frontend/vitest.setup.ts
+- frontend/app/globals.css
 - frontend/tests/example.test.tsx
+- frontend/.env.local.example
+- README.md

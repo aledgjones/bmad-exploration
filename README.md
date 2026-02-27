@@ -15,5 +15,9 @@ The top-level directory also holds shared configuration and tooling (linting, wo
 ## Common Commands
 
 - `npm run dev` – Start both frontend and backend in development mode (implemented via workspace scripts).
+- **Frontend only:**
+  - `cd frontend && npm install` – install frontend dependencies
+  - `cd frontend && npm run dev` – start Next.js development server (port 3000)
+  - `cd frontend && npm run test` – run frontend Vitest unit tests
 
 Additional commands will be added as services are scaffolded.
