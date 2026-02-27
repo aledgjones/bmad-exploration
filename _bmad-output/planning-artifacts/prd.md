@@ -10,8 +10,8 @@ stepsCompleted:
   - step-06-innovation
   - step-07-project-type
   - step-08-scoping
-- step-09-functional
-- step-10-nonfunctional
+  - step-09-functional
+  - step-10-nonfunctional
 inputDocuments: []
 workflowType: "prd"
 briefCount: 0
