@@ -88,9 +88,9 @@ FR18: Epic 4 – API ensures data consistency under concurrency.
 
 ## Epic List
 
-### Epic 1: Project Setup & Infrastructure
+### Epic 1: Technical Enabler – Project Setup & Infrastructure
 
-Establish the foundational development environment and infrastructure, including repository scaffolding, toolchain configuration, and containerization to enable all subsequent feature work. This includes initializing Next.js frontend, Fastify backend, PostgreSQL schema, Docker Compose orchestration, **and establishing testing frameworks (Vitest for code/unit tests and Playwright for e2e)**.
+This non-user-facing epic delivers essential infrastructure and tooling to support all subsequent development. It includes repository scaffolding, toolchain configuration, and containerization: initializing Next.js frontend, Fastify backend, PostgreSQL schema, Docker Compose orchestration, **and establishing testing frameworks (Vitest for code/unit tests and Playwright for e2e)**.
 **Additional requirements covered:** Dockerization, starter templates (Next.js, Fastify), PostgreSQL setup, development tooling, testing setup.
 
 #### Story 1.1: Initialize monorepo structure
