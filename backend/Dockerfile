@@ -1,4 +1,4 @@
-FROM node:18-alpine
+FROM node:22-alpine
 WORKDIR /app
 
 # install dependencies
@@ -11,5 +11,9 @@ COPY . .
 # build typescript
 RUN npm run build:ts
 
-EXPOSE 3000
-CMD ["npm", "run", "dev"]
+# expose default port (can be overridden by PORT env var)
+EXPOSE 4000
+
+# The app is compiled in the image. Run a small bootstrap script rather
+# than using fastify-cli to avoid ESM dependency issues.
+CMD ["node", "dist/start.js"]

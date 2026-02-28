@@ -34,6 +34,13 @@ override when necessary.
 Unit tests are driven by Vitest. There is a basic smoke test that verifies the
 server can start and that Prisma can connect to the configured database.
 
+A helper located at `backend/test/compose-helper.ts` wraps
+[Testcontainers](https://www.testcontainers.org/) and spins up the same
+`docker-compose.yml` stack programmatically – this allows integration tests to
+run in CI without requiring manual container management. See
+`backend/test/playwright-smoke.test.ts` for a sample test that launches the
+frontend in a real browser and verifies the homepage loads.
+
 ```bash
 npm run test
 ```
@@ -52,6 +59,26 @@ recommended).
 
 ### Docker-compose
 
-We also provide a `docker-compose.yml` at the repo root defining the backend
-service and a PostgreSQL database for local development. Use
-`docker compose up` to start both services.
+A `docker-compose.yml` file at the repo root defines frontend, backend, and a
+PostgreSQL database for local development. The stack defaults to using ports
+3000 (frontend), 4000 (backend) and 5432 (database) but these can be overridden
+via environment variables (see top‑level README for details).
+
+To start the full stack:
+
+```bash
+docker compose up --build
+```
+
+and to tear it down:
+
+```bash
+docker compose down
+```
+
+Backend-specific environment variables of note:
+
+- `DATABASE_URL` – connection string for Prisma; the compose file injects a
+  value pointing at the `postgres` service on the default network.
+- `PORT` – port the Fastify server listens on; overridden by compose to
+  `${BACKEND_PORT:-4000}`.

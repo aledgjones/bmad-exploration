@@ -6,5 +6,6 @@ export default defineConfig({
     environment: 'node',
     // limit to backend/test directory to avoid double-running compiled files
     include: ['test/**/*.ts'],
+    exclude: ['test/compose-helper.ts'],
   },
 });

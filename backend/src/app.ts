@@ -18,7 +18,7 @@ const app: FastifyPluginAsync<AppOptions> = async (
 
   // log port so environment variable is referenced and helps debugging
   fastify.addHook('onReady', async () => {
-    const port = process.env.PORT || '3000';
+    const port = process.env.PORT || '4000';
     fastify.log.info(`using PORT=${port}`);
   });
 
@@ -44,7 +44,7 @@ const app: FastifyPluginAsync<AppOptions> = async (
 
 // helper to expose resolved port for testing/clarity
 export function getPort(): number {
-  return Number(process.env.PORT) || 3000;
+  return Number(process.env.PORT) || 4000;
 }
 
 export default app;

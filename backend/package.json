@@ -4,13 +4,16 @@
   "description": "This project was bootstrapped with Fastify-CLI.",
   "type": "module",
   "main": "app.ts",
+  "engines": {
+    "node": ">=22"
+  },
   "directories": {
     "test": "test"
   },
   "scripts": {
     "test": "vitest",
     "test:watch": "vitest",
-    "start": "npm run build:ts && fastify start -l info dist/app.js",
+    "start": "npm run build:ts && node dist/start.js",
     "build:ts": "tsc",
     "watch:ts": "tsc -w",
     "dev": "npm run build:ts && concurrently -k -p \"[{name}]\" -n \"TypeScript,App\" -c \"yellow.bold,cyan.bold\" \"npm:watch:ts\" \"npm:dev:start\"",
@@ -29,11 +32,13 @@
   "devDependencies": {
     "@prisma/client": "^4.16.2",
     "@types/node": "^24.0.8",
+    "@playwright/test": "^1.51.1",
     "c8": "^10.1.2",
     "concurrently": "^9.0.0",
     "fastify-tsconfig": "^3.0.0",
     "prisma": "^4.16.2",
     "ts-node": "^10.9.2",
+    "testcontainers": "^9.1.5",
     "typescript": "~5.9.2",
     "vitest": "^4.0.18"
   }
