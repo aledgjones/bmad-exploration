@@ -26,7 +26,9 @@ const todos: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
           .code(400)
           .send({ error: 'text must be a non-empty string' });
       }
-      const todo = await fastify.prisma.todo.create({ data: { text } });
+      const todo = await fastify.prisma.todo.create({
+        data: { text, status: 'todo' },
+      });
       reply.code(201).send(todo);
     },
   );
@@ -41,6 +43,54 @@ const todos: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
     });
     return list;
   });
+
+  // PATCH status update
+  fastify.patch(
+    '/todos/:id',
+    {
+      schema: {
+        params: {
+          type: 'object',
+          required: ['id'],
+          properties: { id: { type: 'number' } },
+        },
+        body: {
+          type: 'object',
+          required: ['status'],
+          properties: {
+            status: {
+              type: 'string',
+              enum: ['todo', 'in-progress', 'done'],
+            },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      if (!fastify.prisma) {
+        return reply.code(500).send({ error: 'database not initialized' });
+      }
+      const {
+        params: { id },
+        body: { status },
+      } = request as any;
+      fastify.log.info(`PATCH /todos/${id} status=${status}`);
+      try {
+        const todo = await fastify.prisma.todo.update({
+          where: { id },
+          data: { status },
+        });
+        return todo;
+      } catch (err: any) {
+        fastify.log.error('patch error', err);
+        if (err.code === 'P2025') {
+          // record not found
+          return reply.code(404).send({ error: 'todo not found' });
+        }
+        throw err;
+      }
+    },
+  );
 };
 
 export default todos;

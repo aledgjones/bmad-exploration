@@ -37,3 +37,30 @@ export async function createTodo(text: string): Promise<Todo> {
   }
   return res.json();
 }
+
+// helper for updating status
+export type TodoStatus = 'todo' | 'in-progress' | 'done';
+
+export async function updateTodoStatus(
+  id: number,
+  status: TodoStatus
+): Promise<Todo> {
+  const res = await fetch(`/todos/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status }),
+  });
+  if (!res.ok) {
+    let msg = `failed to update status: ${res.status}`;
+    try {
+      const data = await res.json();
+      if (data && typeof data.error === 'string') {
+        msg += ` ${data.error}`;
+      }
+    } catch {
+      // ignore
+    }
+    throw new Error(msg);
+  }
+  return res.json();
+}

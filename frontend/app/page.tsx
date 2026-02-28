@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import NewTodoForm from './components/NewTodoForm';
 import TodoList from './components/TodoList';
 import type { Todo } from '../src/api/todos';
-import { fetchTodos, createTodo } from '../src/api/todos';
+import { fetchTodos, createTodo, updateTodoStatus } from '../src/api/todos';
 
 export default function Home() {
   const [todos, setTodos] = useState<Todo[]>([]);
@@ -33,18 +33,40 @@ export default function Home() {
     }
   };
 
+  const handleStatusChange = async (id: number, status: string) => {
+    console.log('handleStatusChange called', id, status);
+    // optimistic update
+    setTodos((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, status } : t)),
+    );
+    try {
+      console.log('calling updateTodoStatus...');
+      const res = await updateTodoStatus(id, status);
+      console.log('updateTodoStatus result', res);
+    } catch (err: any) {
+      console.error('status update failed', err);
+      alert('Unable to update status');
+      // rollback by refetching or resetting to original state
+      fetchTodos()
+        .then((list) => setTodos(list))
+        .catch(() => { });
+    }
+  };
+
   return (
     <div
       data-testid="page-root"
       className="flex min-h-screen items-center justify-center bg-gray-100 font-sans dark:bg-black"
     >
       <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-start py-16 px-8 sm:items-start">
-        <h1 className="text-2xl font-bold mb-4">Todo List</h1>
-        <NewTodoForm onSubmit={handleAdd} />
+        <div className="flex flex-col items-center w-full space-y-4 mb-12">
+          <h1 className="text-2xl font-bold">Todo List</h1>
+          <NewTodoForm onSubmit={handleAdd} />
+        </div>
         {loading ? (
           <p className="mt-4">Loading...</p>
         ) : (
-          <TodoList todos={todos} />
+          <TodoList todos={todos} onStatusChange={handleStatusChange} />
         )}
       </main>
     </div>

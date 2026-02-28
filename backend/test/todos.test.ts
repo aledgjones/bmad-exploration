@@ -139,3 +139,66 @@ test('example route responds correctly', async () => {
 
   await server.close();
 });
+
+// --- new status-change tests ---
+
+test('PATCH /todos/:id updates status when valid', async () => {
+  const server = Fastify();
+  await server.register(app, options);
+  await server.ready();
+
+  // create a todo directly with prisma so we know id
+  const created = await prisma.todo.create({ data: { text: 'foo' } });
+
+  const response = await server.inject({
+    method: 'PATCH',
+    url: `/todos/${created.id}`,
+    payload: { status: 'in-progress' },
+  });
+
+  expect(response.statusCode).toBe(200);
+  const body = response.json();
+  expect(body).toHaveProperty('id', created.id);
+  expect(body.status).toBe('in-progress');
+
+  // verify database persisted
+  const fromDb = await prisma.todo.findUnique({ where: { id: created.id } });
+  expect(fromDb?.status).toBe('in-progress');
+
+  await server.close();
+});
+
+test('PATCH /todos/:id rejects invalid status', async () => {
+  const server = Fastify();
+  await server.register(app, options);
+  await server.ready();
+
+  const created = await prisma.todo.create({ data: { text: 'bar' } });
+
+  const response = await server.inject({
+    method: 'PATCH',
+    url: `/todos/${created.id}`,
+    payload: { status: 'not-a-valid-one' },
+  });
+
+  expect(response.statusCode).toBe(400);
+  // fastify will include validation error details; just ensure it's a 400
+
+  await server.close();
+});
+
+test('PATCH /todos/:id returns 404 for missing item', async () => {
+  const server = Fastify();
+  await server.register(app, options);
+  await server.ready();
+
+  const response = await server.inject({
+    method: 'PATCH',
+    url: '/todos/999999',
+    payload: { status: 'done' },
+  });
+  expect(response.statusCode).toBe(404);
+  expect(response.json()).toEqual({ error: 'todo not found' });
+
+  await server.close();
+});

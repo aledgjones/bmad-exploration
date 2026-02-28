@@ -75,3 +75,76 @@ test('todos persist after page refresh', async () => {
   await page.waitForSelector('text=persist item');
   await browser.close();
 });
+
+// test status-change flow with persistence
+
+test('user can change status and it persists', async () => {
+  expect(composeEnv).not.toBeNull();
+  const port = process.env.FRONTEND_PORT || '3000';
+  const browser = await chromium.launch();
+  const page = await browser.newPage();
+  page.on('console', (msg) => {
+    console.log('PAGE LOG>', msg.text());
+  });
+  let patchCount = 0;
+  // log PATCH response details to help debug persistence
+  page.on('response', async (res) => {
+    if (res.url().includes('/todos')) {
+      console.log(
+        'todos response',
+        res.request().method(),
+        res.status(),
+        res.url(),
+      );
+    }
+    if (res.request().method() === 'PATCH' && res.url().includes('/todos/')) {
+      patchCount++;
+      try {
+        const txt = await res.text();
+        console.log('PATCH body', txt);
+      } catch {}
+    }
+  });
+  await page.goto(`http://localhost:${port}`);
+  // create a fresh todo
+  await page.fill('input[placeholder="New todo"]', 'status item');
+  await page.click('button:has-text("Add")');
+  await page.waitForSelector('text=status item');
+
+  // previously intercepted PATCH calls, but this hook caused errors and
+  // prevented requests from reaching the backend.  We'll rely on the response
+  // listener above instead and omit manual interception.
+  // patchCount is tracked via the response listener defined earlier
+
+  // change to in-progress and then done via dropdown badge
+  await page.selectOption(
+    'select[aria-label="Change todo status"]',
+    'in-progress',
+  );
+  await page.selectOption('select[aria-label="Change todo status"]', 'done');
+
+  // after done, card should have line-through style locally
+  const doneCard = await page.$(
+    '[class*=\"line-through\"]:has-text("status item")',
+  );
+  expect(doneCard).not.toBeNull();
+
+  // check server-side data directly
+  const serverTodos = await page.evaluate(async () => {
+    const res = await fetch('/todos');
+    return res.json();
+  });
+  console.log('server todos after patches', serverTodos);
+  const updated = serverTodos.find((t: any) => t.text === 'status item');
+  expect(updated).toBeDefined();
+  expect(updated.status).toBe('done');
+
+  // refresh and confirm still done
+  await page.reload();
+  await page.waitForSelector('text=status item');
+  await page.waitForSelector(
+    '[class*=\"line-through\"]:has-text("status item")',
+  );
+
+  await browser.close();
+}, 60000);
