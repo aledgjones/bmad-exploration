@@ -9,6 +9,14 @@
   "scripts": {
     "dev": "npm --prefix frontend run dev & npm --prefix backend run dev",
     "install-workspaces": "npm install --prefix frontend && npm install --prefix backend",
-    "test:e2e": "npx playwright install chromium && npx vitest run e2e/playwright-smoke.test.ts"
+    "test:e2e": "npx playwright install chromium && npx vitest run e2e/playwright-smoke.test.ts",
+    "test:frontend": "npm --workspace=frontend run test",
+    "test:frontend:watch": "npm --workspace=frontend run test:watch",
+    "test:backend": "npm --workspace=backend run test",
+    "test:backend:watch": "npm --workspace=backend run test:watch",
+    "coverage:frontend": "npm --workspace=frontend run test -- --coverage",
+    "coverage:backend": "npm --workspace=backend run test -- --coverage",
+    "check-coverage": "node scripts/check-coverage.js",
+    "coverage": "npm run coverage:frontend && npm run coverage:backend && npm run check-coverage"
   }
 }
