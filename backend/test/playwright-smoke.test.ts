@@ -3,6 +3,8 @@ import { chromium } from '@playwright/test';
 import { startCompose } from './compose-helper.js';
 
 // sample smoke test demonstrating integration via Testcontainers and Playwright
+// (currently skipped because the full compose stack adds too much overhead and
+// conflicts with developer-host Postgres; will unskip in story 1.5)
 
 // This test is a proof‑of‑concept; building the full compose stack via
 // Testcontainers can be slow and has dependencies on a working Docker

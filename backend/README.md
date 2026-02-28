@@ -20,6 +20,11 @@ npm install          # install dependencies
 - `PORT` – port the Fastify server listens on (defaults to `3000`). The
   server logs the resolved value at startup for easier debugging.
 
+### Health Endpoint
+
+- `GET /health` – simple health-check that responds with `{ status: 'ok' }`.
+  this is used by the docker-compose healthcheck and any orchestration tooling.
+
 ### Development
 
 ```bash

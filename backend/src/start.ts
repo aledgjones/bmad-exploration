@@ -11,7 +11,13 @@ async function run() {
   await server.listen({ port, host: '0.0.0.0' });
 }
 
-run().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+// export for testing purposes
+export { run };
+
+// run when executed directly (node or ts-node)
+if (import.meta.main) {
+  run().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}

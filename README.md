@@ -23,8 +23,8 @@ Compose file supports the following environment variables with sensible defaults
 
 | Variable                                            | Description                                | Default         |
 | --------------------------------------------------- | ------------------------------------------ | --------------- |
-| `FRONTEND_PORT`                                     | Host port mapped to the frontend container | `3000`          |
 | `BACKEND_PORT`                                      | Host port mapped to the backend container  | `4000`          |
+| `FRONTEND_PORT`                                     | Host port mapped to the frontend container | `3000`          |
 | `POSTGRES_HOST_PORT`                                | Host port for Postgres                     | `5432`          |
 | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` | Credentials for database                   | `postgres` each |
 
