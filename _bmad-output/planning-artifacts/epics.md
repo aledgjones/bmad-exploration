@@ -162,6 +162,19 @@ So that I can verify the stack launches and a basic UI flow works end-to-end.
 **Then** Playwright brings up containers, navigates to the frontend, and confirms the homepage loads,
 **And** the test passes and cleans up the containers.
 
+#### Story 1.6: Collect test coverage and enforce 90% threshold
+
+As a developer,
+I want the build/test pipeline to gather coverage metrics and fail if overall coverage falls below 90%,
+So that we maintain high-quality code and drive early test creation.
+
+**Acceptance Criteria:**
+
+**Given** the monorepo with both frontend and backend tests,
+**When** the test suite runs (unit or e2e),
+**Then** coverage reports are generated for both services,
+**And** the CI or local script fails with a clear error if total coverage is under 90%.
+
 ### Epic 2: Core Todo Management Experience
 
 Users can create, view, modify, complete, and delete todos with immediate feedback and clear UI states, enabling basic personal task tracking.
