@@ -24,8 +24,16 @@ export async function createTodo(text: string): Promise<Todo> {
     body: JSON.stringify({ text }),
   });
   if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    throw new Error(`failed to create todo: ${res.status} ${body}`);
+    let msg = `failed to create todo: ${res.status}`;
+    try {
+      const data = await res.json();
+      if (data && typeof data.error === 'string') {
+        msg += ` ${data.error}`;
+      }
+    } catch {
+      // ignore parse errors
+    }
+    throw new Error(msg);
   }
   return res.json();
 }

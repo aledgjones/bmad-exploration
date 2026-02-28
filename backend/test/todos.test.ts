@@ -122,11 +122,7 @@ test('routes return 500 if prisma not initialized', async () => {
 
   const get = await server.inject({ method: 'GET', url: '/todos' });
   expect(get.statusCode).toBe(500);
-  expect(get.json()).toEqual({
-    error: 'Internal Server Error',
-    message: 'database not initialized',
-    statusCode: 500,
-  });
+  expect(get.json()).toEqual({ error: 'database not initialized' });
 
   await server.close();
 });

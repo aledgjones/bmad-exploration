@@ -33,8 +33,8 @@ const todos: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
 
   fastify.get('/todos', async (request, reply) => {
     if (!fastify.prisma) {
-      reply.code(500);
-      throw new Error('database not initialized');
+      // mirror POST handler behaviour for consistent error payload
+      return reply.code(500).send({ error: 'database not initialized' });
     }
     const list = await fastify.prisma.todo.findMany({
       orderBy: { createdAt: 'desc' },

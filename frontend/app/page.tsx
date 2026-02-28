@@ -27,6 +27,9 @@ export default function Home() {
     } catch (err: any) {
       console.error('error creating todo', err);
       alert('Unable to add todo. Is the backend running?');
+      // rethrow so caller (NewTodoForm) knows the submission failed and can
+      // avoid clearing the input
+      throw err;
     }
   };
 

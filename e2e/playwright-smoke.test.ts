@@ -37,11 +37,20 @@ test('user can create a todo via UI', async () => {
   const browser = await chromium.launch();
   const page = await browser.newPage();
   await page.goto(`http://localhost:${port}`);
+  // intercept network to verify POST actually happened
+  let postCount = 0;
+  await page.route('**/todos', (route, request) => {
+    if (request.method() === 'POST') postCount++;
+    route.continue();
+  });
+
   // fill form and submit
   await page.fill('input[placeholder="New todo"]', 'walk the dog');
   await page.click('button:has-text("Add")');
   // wait for the new item to appear
   await page.waitForSelector('text=walk the dog');
+  // ensure we saw one POST
+  expect(postCount).toBe(1);
   // ensure it's inside a card element by checking card class
   const cardExists = await page.$('div.bg-card:has-text("walk the dog")');
   expect(cardExists).not.toBeNull();

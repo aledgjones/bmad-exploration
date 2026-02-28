@@ -92,6 +92,28 @@ Raptor mini (Preview)
 
 - Updated coverage threshold to 80% to accommodate new code and existing tests.
 
+17. Reviewed code as part of automated adversarial review and addressed medium/low findings:
+    - Changed form clearing logic so input only resets on successful network submission and modified page handler to rethrow errors;
+      tests added to exercise failure branch and accessibility label.
+    - Added hidden label for the new-todo input (accessibility fix).
+    - Updated backend GET `/todos` error handling for consistency, plus corresponding unit test.
+    - Enhanced `createTodo` client helper to build safer error messages.
+    - Extended e2e test to intercept POST request and assert network call occurred.
+    - Bumped frontend/page test to ensure input persistence on failure.
+
+- File modifications during review:
+
+```
+- frontend/app/components/NewTodoForm.tsx (modified)
+- frontend/app/page.tsx (modified)
+- frontend/tests/NewTodoForm.test.tsx (modified)
+- frontend/tests/page.test.tsx (modified)
+- frontend/src/api/todos.ts (modified)
+- backend/src/routes/todos.ts (modified)
+- backend/test/todos.test.ts (modified)
+- e2e/playwright-smoke.test.ts (modified)
+```
+
 ### File List
 
 ```

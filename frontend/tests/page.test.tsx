@@ -90,6 +90,9 @@ describe('Home page data flow', () => {
         'Unable to add todo. Is the backend running?'
       );
     });
+    // input should still hold the attempted value so user can retry
+    expect(screen.getByPlaceholderText(/New todo/i)).toHaveValue('oops');
+
     // restore spies to avoid leak
     alertSpy.mockRestore();
     errorSpy.mockRestore();
