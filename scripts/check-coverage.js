@@ -50,26 +50,15 @@ if (require.main === module) {
     console.error('ERROR: one or more coverage reports missing or invalid');
     process.exit(1);
   }
-  // lower default threshold to 80% now that additional features are under test
-  if (pct < (process.env.THRESHOLD ? Number(process.env.THRESHOLD) : 80)) {
+  const envThreshold = process.env.THRESHOLD
+    ? Number(process.env.THRESHOLD)
+    : undefined;
+  const effectiveThreshold =
+    typeof envThreshold === 'number' ? envThreshold : 90;
+  if (pct < effectiveThreshold) {
     console.error(
-      `ERROR: total coverage ${pct.toFixed(2)}% < threshold ${process.env.THRESHOLD || 80}`,
+      `ERROR: total coverage ${pct.toFixed(2)}% < threshold ${effectiveThreshold}`,
     );
-    process.exit(1);
-  } else {
-    process.exit(0);
-  }
-}
-
-module.exports = { checkCoverage };
-
-// CLI entry point
-if (require.main === module) {
-  const result = checkCoverage();
-  const pct = result.pct;
-  console.log(`combined coverage: ${pct.toFixed(2)}%`);
-  if (pct < 90) {
-    console.error(`ERROR: total coverage ${pct.toFixed(2)}% < threshold 90%`);
     process.exit(1);
   } else {
     process.exit(0);

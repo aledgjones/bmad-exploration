@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import NewTodoForm from './components/NewTodoForm';
 import type { Todo } from '../src/api/todos';

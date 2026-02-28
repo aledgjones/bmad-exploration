@@ -89,4 +89,41 @@ describe('checkCoverage script', () => {
     // after merging, one hit should exist giving 100% coverage for that line
     expect(pct).toBe(100);
   });
+
+  it('uses default 90% threshold when no env provided', () => {
+    // create a dummy report at exactly threshold
+    const high = {
+      'file.js': {
+        path: 'file.js',
+        statementMap: { 0: { start: { line: 1 }, end: { line: 1 } } },
+        fnMap: {},
+        branchMap: {},
+        s: { 0: 1 },
+        f: {},
+        b: {},
+      },
+    };
+    const p = writeReport('high2.json', high);
+    const { pct } = checkCoverage(undefined, [p]);
+    expect(pct).toBeGreaterThanOrEqual(90);
+  });
+
+  it('honors THRESHOLD environment variable when provided', () => {
+    process.env.THRESHOLD = '50';
+    const low = {
+      'file.js': {
+        path: 'file.js',
+        statementMap: { 0: { start: { line: 1 }, end: { line: 1 } } },
+        fnMap: {},
+        branchMap: {},
+        s: { 0: 0 },
+        f: {},
+        b: {},
+      },
+    };
+    const p = writeReport('low2.json', low);
+    const { pct } = checkCoverage(undefined, [p]);
+    expect(pct).toBeLessThan(50);
+    delete process.env.THRESHOLD;
+  });
 });

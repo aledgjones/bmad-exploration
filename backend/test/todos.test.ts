@@ -66,3 +66,51 @@ test('GET /todos returns list including created tasks', async () => {
   expect(list.length).toBeGreaterThan(0);
   expect(list[0]).toHaveProperty('text');
 });
+
+// additional coverage targets: routes when prisma is null, and example plugin
+
+test('routes return 500 if prisma not initialized', async () => {
+  const server = Fastify();
+  // decorate manually instead of registering prisma plugin
+  // @ts-ignore
+  server.decorate('prisma', null);
+  // import the route directly rather than full app to avoid plugin override
+  const todosRoute = (await import('../src/routes/todos')).default;
+  await server.register(todosRoute as any);
+  await server.ready();
+
+  const post = await server.inject({
+    method: 'POST',
+    url: '/todos',
+    payload: { text: 'x' },
+  });
+  expect(post.statusCode).toBe(500);
+  expect(post.json()).toEqual({
+    error: 'Internal Server Error',
+    message: 'database not initialized',
+    statusCode: 500,
+  });
+
+  const get = await server.inject({ method: 'GET', url: '/todos' });
+  expect(get.statusCode).toBe(500);
+  expect(get.json()).toEqual({
+    error: 'Internal Server Error',
+    message: 'database not initialized',
+    statusCode: 500,
+  });
+
+  await server.close();
+});
+
+test('example route responds correctly', async () => {
+  const server = Fastify();
+  const exampleRoute = (await import('../src/routes/example/index')).default;
+  await server.register(exampleRoute as any, { prefix: '/example' });
+  await server.ready();
+
+  const res = await server.inject({ method: 'GET', url: '/example' });
+  expect(res.statusCode).toBe(200);
+  expect(res.body).toBe('this is an example');
+
+  await server.close();
+});
