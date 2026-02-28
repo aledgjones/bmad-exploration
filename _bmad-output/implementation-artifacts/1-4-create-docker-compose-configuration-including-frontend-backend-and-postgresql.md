@@ -1,6 +1,6 @@
 # Story 1.4: create-docker-compose-configuration-including-frontend-backend-and-postgresql
 
-Status: in-progress
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 

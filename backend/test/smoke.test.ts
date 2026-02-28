@@ -15,26 +15,6 @@ test('backend server can start and stop', async () => {
   await server.close();
 });
 
-// NOTE: heavy integration tests that spin up the full compose stack proved
-// flaky on the host (port collisions, long startup times). these will be
-// revisited in the next story when the end-to-end pipeline is stabilized.
-// For now we leave the helper available and keep the smoke tests lightweight.
-
-// import { startCompose } from './compose-helper.js';
-//
-// test.skip('compose stack starts and /health endpoint is reachable', async () => {
-//   const compose = await startCompose();
-//   try {
-//     const port = process.env.BACKEND_PORT || '4000';
-//     const res = await fetch(`http://localhost:${port}/health`);
-//     expect(res.ok).toBe(true);
-//     const body = await res.json();
-//     expect(body.status).toBe('ok');
-//   } finally {
-//     await compose.down();
-//   }
-// });
-
 test('prisma client can connect', async () => {
   // launch a real postgres container for the duration of this test
   const container = await new PostgreSqlContainer('postgres:15')

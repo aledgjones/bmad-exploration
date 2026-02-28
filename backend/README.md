@@ -36,15 +36,20 @@ override when necessary.
 
 ### Testing
 
-Unit tests are driven by Vitest. There is a basic smoke test that verifies the
-server can start and that Prisma can connect to the configured database.
+Unit and lightweight integration tests are driven by Vitest and live under
+`backend/test/`. They cover server startup, Prisma connectivity, and utility
+functions. A heavier end-to-end smoke test now resides separately under the
+root `e2e/` directory and exercises the full stack with Playwright.
 
-A helper located at `backend/test/compose-helper.ts` wraps
+A helper located at `e2e/compose-helper.ts` wraps
 [Testcontainers](https://www.testcontainers.org/) and spins up the same
-`docker-compose.yml` stack programmatically – this allows integration tests to
-run in CI without requiring manual container management. See
-`backend/test/playwright-smoke.test.ts` for a sample test that launches the
-frontend in a real browser and verifies the homepage loads.
+`docker-compose.yml` stack programmatically – this allows end-to-end tests to
+run in CI without requiring manual container management. The smoke test at
+`e2e/playwright-smoke.test.ts` now invokes the helper in `beforeAll`/`afterAll`
+so it manages the stack lifecycle itself. The top-level `npm run test:e2e`
+script simply installs Playwright browsers and invokes the e2e test; the
+stack is started by the test itself. The script is a convenience for CI and
+cron jobs.
 
 ```bash
 npm run test

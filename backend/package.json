@@ -11,7 +11,7 @@
     "test": "test"
   },
   "scripts": {
-    "test": "vitest",
+    "test": "vitest --run",
     "test:watch": "vitest",
     "start": "npm run build:ts && node dist/start.js",
     "build:ts": "tsc",

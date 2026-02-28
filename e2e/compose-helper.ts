@@ -6,7 +6,7 @@ import { DockerComposeEnvironment } from 'testcontainers';
  * Returns the started environment which must be shut down via `.down()`.
  */
 export async function startCompose() {
-  const composeFilePath = path.resolve(__dirname, '../..');
+  const composeFilePath = path.resolve(__dirname, '..');
   const env = await new DockerComposeEnvironment(
     composeFilePath,
     'docker-compose.yml',
