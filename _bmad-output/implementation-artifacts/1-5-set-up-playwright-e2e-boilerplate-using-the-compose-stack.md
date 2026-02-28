@@ -27,6 +27,11 @@ so that I can verify the stack launches and a basic UI flow works end-to-end.
 - [x] Implement a simple smoke test (e.g. `playwright-smoke.test.ts`) that loads the home page and lives in dedicated top‑level `e2e` folder
 - [x] Add npm script `test:e2e` that starts compose and runs Playwright
 
+### Review Follow-ups (AI)
+
+- [x] [AI-Review][Medium] Document `backend/package.json` and `backend/test/playwright-smoke.test.ts` changes in story file to match git commits.
+- [x] [AI-Review][Medium] Remove or clarify duplicate smoke test in `backend/test/playwright-smoke.test.ts` since active test now lives in `/e2e`.
+
 ## Dev Notes
 
 - Relevant architecture patterns and constraints:
@@ -56,6 +61,7 @@ so that I can verify the stack launches and a basic UI flow works end-to-end.
 
 - created dedicated e2e directory at repository root (`/e2e`)
 - moved smoke test and compose helper into root `e2e`, and modified the smoke test to start/stop the compose stack itself via the helper using beforeAll/afterAll hooks
+- removed obsolete `backend/test/playwright-smoke.test.ts` after migrating it to `/e2e` (old file duplicated behavior)
 - adjusted `backend/vitest.config.ts` to limit test discovery to unit files; e2e tests are now invoked explicitly
 - updated `playwright.config.ts` to point at root `e2e`
 - added root npm script `test:e2e` which brings up compose, installs
@@ -66,7 +72,18 @@ so that I can verify the stack launches and a basic UI flow works end-to-end.
 
 {{agent_model_name_version}}
 
+### Updated File List
+
+- `backend/package.json` (added Playwright & testcontainers deps)
+- `e2e/playwright-smoke.test.ts` (active smoke test)
+- `e2e/compose-helper.ts` (stack helper)
+- `playwright.config.ts` (new config)
+- `package.json` (root script addition)
+- `backend/vitest.config.ts` (test discovery update)
+
 ### Debug Log References
+
+- Git commit 84e9b78 shows backend/package.json and backend/test/playwright-smoke.test.ts modifications.
 
 - terminal output from running `npm run test:e2e` (success)
 
