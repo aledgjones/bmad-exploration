@@ -87,6 +87,8 @@ Raptor mini (Preview)
 12. Startup now runs `prisma migrate deploy` automatically (and tests invoke migrations too).
 13. Improved error messages when backend returns 500; frontend shows alert if creation fails.
 14. Added tests covering API error case and updated page tests accordingly.
+15. Improved e2e tooling: compose-helper now retries on startup errors, performs health checks via `waitForService`.
+16. **Manual fix:** switched to `Wait` strategies for health check (`forHealthCheck`/`forHttp`) and removed CLI fallback per user request. Adjusted tests to disable teardown because environment stays up for debugging.
 
 - Updated coverage threshold to 80% to accommodate new code and existing tests.
 
@@ -117,7 +119,8 @@ Raptor mini (Preview)
 - backend/test/plugin.test.ts (modified)
 - backend/vitest.config.ts (modified)
 - docker-compose.yml (modified)
-- e2e/playwright-smoke.test.ts (modified)
+- e2e/compose-helper.ts (modified)
+- e2e/playwright-smoke.test.ts (modified, teardown commented out)
 - scripts/check-coverage.js (modified)
 
 ```

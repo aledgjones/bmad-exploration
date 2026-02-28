@@ -6,7 +6,7 @@ import { startCompose } from './compose-helper.js';
 // shared helper. the npm script `test:e2e` still exists but is no longer
 // required for local runs.
 
-let composeEnv: any;
+let composeEnv: any | null = null;
 
 beforeAll(async () => {
   composeEnv = await startCompose();
@@ -19,6 +19,7 @@ afterAll(async () => {
 }, 120_000);
 
 test('frontend homepage reachable through compose stack', async () => {
+  expect(composeEnv).not.toBeNull();
   const port = process.env.FRONTEND_PORT || '3000';
   const browser = await chromium.launch();
   const page = await browser.newPage();
@@ -31,6 +32,7 @@ test('frontend homepage reachable through compose stack', async () => {
 
 // exercise the new-todo flow end-to-end
 test('user can create a todo via UI', async () => {
+  expect(composeEnv).not.toBeNull();
   const port = process.env.FRONTEND_PORT || '3000';
   const browser = await chromium.launch();
   const page = await browser.newPage();

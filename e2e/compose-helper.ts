@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { DockerComposeEnvironment } from 'testcontainers';
+import { DockerComposeEnvironment, Wait } from 'testcontainers';
 
 /**
  * Starts the docker-compose stack located at the repo root.
@@ -20,6 +20,11 @@ export async function startCompose() {
       POSTGRES_PASSWORD: process.env.POSTGRES_PASSWORD || 'postgres',
       POSTGRES_DB: process.env.POSTGRES_DB || 'postgres',
     })
-    .up();
+    .withWaitStrategy('postgres-1', Wait.forHealthCheck())
+    .withWaitStrategy('backend-1', Wait.forHealthCheck())
+    .withWaitStrategy('frontend-1', Wait.forHealthCheck())
+    .withBuild()
+    .up(['postgres', 'backend', 'frontend']);
+
   return env;
 }
