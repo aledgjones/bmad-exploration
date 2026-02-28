@@ -1,6 +1,8 @@
 'use client';
 
 import { FormEvent, useState } from 'react';
+import { Input } from '../../components/ui/input';
+import { Button } from '../../components/ui/button';
 
 interface NewTodoFormProps {
   onSubmit: (text: string) => void;
@@ -20,21 +22,16 @@ export default function NewTodoForm({ onSubmit }: NewTodoFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="flex gap-2 w-full max-w-lg">
-      <input
+      <Input
         type="text"
         placeholder="New todo"
         value={text}
         onChange={(e) => setText(e.target.value)}
-        className="grow border p-2 rounded"
         data-testid="new-todo-input"
       />
-      <button
-        type="submit"
-        className="bg-blue-500 text-white px-4 rounded"
-        data-testid="new-todo-submit"
-      >
+      <Button type="submit" data-testid="new-todo-submit">
         Add
-      </button>
+      </Button>
     </form>
   );
 }

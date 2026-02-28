@@ -32,6 +32,18 @@ describe('Home page data flow', () => {
     expect(await screen.findByText('hello')).toBeInTheDocument();
   });
 
+  it('alerts if initial fetch fails', async () => {
+    mockedFetch.mockRejectedValue(new Error('network'));
+    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => { });
+    render(<Home />);
+    await waitFor(() => {
+      expect(alertSpy).toHaveBeenCalledWith(
+        'Unable to load todos. Is the backend running?'
+      );
+    });
+    alertSpy.mockRestore();
+  });
+
   it('creates a new todo and prepends to list', async () => {
     mockedFetch.mockResolvedValue([]);
     const created = {
@@ -56,8 +68,8 @@ describe('Home page data flow', () => {
     mockedCreate.mockRejectedValue(
       new Error('failed to create todo: 500 database not initialized')
     );
-    vi.spyOn(window, 'alert').mockImplementation(() => { });
-    vi.spyOn(console, 'error').mockImplementation(() => { });
+    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => { });
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
 
     render(<Home />);
     const input = screen.getByPlaceholderText(/New todo/i);
@@ -67,9 +79,12 @@ describe('Home page data flow', () => {
     });
 
     await waitFor(() => {
-      expect(window.alert).toHaveBeenCalledWith(
+      expect(alertSpy).toHaveBeenCalledWith(
         'Unable to add todo. Is the backend running?'
       );
     });
+    // restore spies to avoid leak
+    alertSpy.mockRestore();
+    errorSpy.mockRestore();
   });
 });

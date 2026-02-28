@@ -52,6 +52,23 @@ test('POST /todos creates a todo', async () => {
   expect(body.text).toBe('my task');
 });
 
+// new test - whitespace should fail
+
+test('POST /todos rejects whitespace-only text', async () => {
+  const server = Fastify();
+  await server.register(app, options);
+  await server.ready();
+
+  const response = await server.inject({
+    method: 'POST',
+    url: '/todos',
+    payload: { text: '   ' },
+  });
+
+  expect(response.statusCode).toBe(400);
+  expect(response.json()).toEqual({ error: 'text must be a non-empty string' });
+});
+
 test('GET /todos returns list including created tasks', async () => {
   const server = Fastify();
   await server.register(app, options);
@@ -85,10 +102,9 @@ test('routes return 500 if prisma not initialized', async () => {
     payload: { text: 'x' },
   });
   expect(post.statusCode).toBe(500);
+  // plugin now returns explicit error object rather than Fastify's default wrapper
   expect(post.json()).toEqual({
-    error: 'Internal Server Error',
-    message: 'database not initialized',
-    statusCode: 500,
+    error: 'database not initialized',
   });
 
   const get = await server.inject({ method: 'GET', url: '/todos' });

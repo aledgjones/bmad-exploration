@@ -14,6 +14,16 @@ describe('NewTodoForm component', () => {
     expect(input).toHaveValue('');
   });
 
+  it('submits when pressing Enter key', () => {
+    const handle = vi.fn();
+    const { container } = render(<NewTodoForm onSubmit={handle} />);
+    const input = screen.getByPlaceholderText(/New todo/i);
+    const form = container.querySelector('form')!;
+    fireEvent.change(input, { target: { value: 'enter test' } });
+    fireEvent.submit(form);
+    expect(handle).toHaveBeenCalledWith('enter test');
+  });
+
   it('does not call onSubmit when input is empty or whitespace', () => {
     const handle = vi.fn();
     render(<NewTodoForm onSubmit={handle} />);

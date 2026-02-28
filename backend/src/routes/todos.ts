@@ -15,10 +15,16 @@ const todos: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
       },
     },
     async (request, reply) => {
-      const { text } = request.body as { text: string };
+      let { text } = request.body as { text: string };
       if (!fastify.prisma) {
-        reply.code(500);
-        throw new Error('database not initialized');
+        // return an explicit reply rather than throwing after setting code
+        return reply.code(500).send({ error: 'database not initialized' });
+      }
+      text = text.trim();
+      if (!text) {
+        return reply
+          .code(400)
+          .send({ error: 'text must be a non-empty string' });
       }
       const todo = await fastify.prisma.todo.create({ data: { text } });
       reply.code(201).send(todo);

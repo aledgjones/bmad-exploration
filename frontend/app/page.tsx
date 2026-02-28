@@ -12,6 +12,10 @@ export default function Home() {
   useEffect(() => {
     fetchTodos()
       .then((list) => setTodos(list))
+      .catch((err) => {
+        console.error('failed to load todos', err);
+        alert('Unable to load todos. Is the backend running?');
+      })
       .finally(() => setLoading(false));
   }, []);
 

@@ -1,6 +1,6 @@
 # Story 2.1: Add a new todo item
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -94,20 +94,30 @@ Raptor mini (Preview)
 
 ```
 - frontend/app/components/NewTodoForm.tsx (new)
+- frontend/components/ui/button.tsx (new)
+- frontend/components/ui/input.tsx (new)
+- frontend/lib/utils.ts (new)
 - frontend/app/page.tsx (modified)
+- frontend/app/globals.css (modified)
 - frontend/src/api/todos.ts (new)
 - frontend/tests/NewTodoForm.test.tsx (new)
 - frontend/tests/example.test.tsx (modified)
 - frontend/tests/page.test.tsx (new)
+- frontend/tests/api.test.ts (new)
+- frontend/tests/layout.test.tsx (modified)
 - frontend/next.config.ts (modified)
 - backend/prisma/schema.prisma (modified)
 - backend/Dockerfile (modified)
+- backend/src/plugins/sensible.ts (new)
+- backend/src/start.ts (new)
 - backend/src/routes/todos.ts (new)
 - backend/src/plugins/prisma.ts (new)
 - backend/test/todos.test.ts (new)
 - backend/test/other.test.ts (new)
+- backend/test/plugin.test.ts (modified)
 - backend/vitest.config.ts (modified)
 - docker-compose.yml (modified)
 - e2e/playwright-smoke.test.ts (modified)
+- scripts/check-coverage.js (modified)
 
 ```
