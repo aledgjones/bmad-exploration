@@ -48,8 +48,8 @@ development_status:
   1-5-set-up-playwright-e2e-boilerplate-using-the-compose-stack: done
   1-6-collect-test-coverage-and-enforce-90%-threshold: done
   epic-1-retrospective: optional
-  epic-2: backlog
-  2-1-add-a-new-todo-item: backlog
+  epic-2: in-progress
+  2-1-add-a-new-todo-item: review
   2-2-view-list-of-todos-on-load: backlog
   2-3-change-todo-status-among-to-do-in-progress-done: backlog
   2-4-mark-a-todo-item-as-complete: backlog

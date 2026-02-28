@@ -8,6 +8,9 @@ RUN npm install
 # copy source
 COPY . .
 
+# generate Prisma client for target platforms
+RUN npx prisma generate
+
 # build typescript
 RUN npm run build:ts
 

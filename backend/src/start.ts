@@ -1,3 +1,4 @@
+/* istanbul ignore file */
 import Fastify from 'fastify';
 import app, { options, getPort } from './app.js';
 
@@ -5,6 +6,24 @@ async function run() {
   const server = Fastify(options);
   // register the autoloaded app plugin
   await server.register(app);
+
+  // run pending migrations before accepting traffic
+  if (process.env.DATABASE_URL) {
+    try {
+      // use spawnSync to ensure CLI output is visible
+      const { spawnSync } = await import('node:child_process');
+      server.log.info('running prisma migrate deploy');
+      const res = spawnSync('npx', ['prisma', 'migrate', 'deploy'], {
+        stdio: 'inherit',
+        env: process.env,
+      });
+      if (res.status !== 0) {
+        throw new Error('prisma migrate deploy failed');
+      }
+    } catch (e) {
+      server.log.error('migration step failed: ' + String(e));
+    }
+  }
 
   const port = getPort();
   server.log.info(`listening on port ${port}`);

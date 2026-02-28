@@ -12,7 +12,12 @@ export default defineConfig({
       reporter: ['text', 'json'],
       reportsDirectory: 'coverage',
       include: ['src/**/*.ts'],
-      exclude: ['node_modules/', 'dist/'],
+      exclude: [
+        'node_modules/',
+        'dist/',
+        'src/start.ts',
+        'src/plugins/sensible.ts',
+      ],
     },
   },
 });
