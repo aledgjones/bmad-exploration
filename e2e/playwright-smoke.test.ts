@@ -42,7 +42,27 @@ test('user can create a todo via UI', async () => {
   await page.click('button:has-text("Add")');
   // wait for the new item to appear
   await page.waitForSelector('text=walk the dog');
+  // ensure it's inside a card element by checking card class
+  const cardExists = await page.$('div.bg-card:has-text("walk the dog")');
+  expect(cardExists).not.toBeNull();
   const bodyText = await page.textContent('body');
   expect(bodyText).toContain('walk the dog');
+  await browser.close();
+});
+
+// new test: verify todos persist on reload
+test('todos persist after page refresh', async () => {
+  expect(composeEnv).not.toBeNull();
+  const port = process.env.FRONTEND_PORT || '3000';
+  const browser = await chromium.launch();
+  const page = await browser.newPage();
+  await page.goto(`http://localhost:${port}`);
+  // create an item
+  await page.fill('input[placeholder="New todo"]', 'persist item');
+  await page.click('button:has-text("Add")');
+  await page.waitForSelector('text=persist item');
+  // reload and confirm
+  await page.reload();
+  await page.waitForSelector('text=persist item');
   await browser.close();
 });

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import NewTodoForm from './components/NewTodoForm';
+import TodoList from './components/TodoList';
 import type { Todo } from '../src/api/todos';
 import { fetchTodos, createTodo } from '../src/api/todos';
 
@@ -30,20 +31,17 @@ export default function Home() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-start py-16 px-8 bg-white dark:bg-black sm:items-start">
+    <div
+      data-testid="page-root"
+      className="flex min-h-screen items-center justify-center bg-gray-100 font-sans dark:bg-black"
+    >
+      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-start py-16 px-8 sm:items-start">
         <h1 className="text-2xl font-bold mb-4">Todo List</h1>
         <NewTodoForm onSubmit={handleAdd} />
         {loading ? (
           <p className="mt-4">Loading...</p>
         ) : (
-          <ul className="mt-4 w-full">
-            {todos.map((t) => (
-              <li key={t.id} className="border-b py-2">
-                {t.text}
-              </li>
-            ))}
-          </ul>
+          <TodoList todos={todos} />
         )}
       </main>
     </div>

@@ -30,6 +30,11 @@ describe('Home page data flow', () => {
     mockedFetch.mockResolvedValue(fake);
     render(<Home />);
     expect(await screen.findByText('hello')).toBeInTheDocument();
+    expect(screen.getByRole('list')).toBeInTheDocument();
+    expect(screen.getAllByRole('listitem')).toHaveLength(1);
+    // page outer div should use grey background class
+    const root = screen.getByTestId('page-root');
+    expect(root).toHaveClass('bg-gray-100');
   });
 
   it('alerts if initial fetch fails', async () => {
@@ -61,6 +66,8 @@ describe('Home page data flow', () => {
     fireEvent.click(screen.getByText(/Add/i));
 
     expect(await screen.findByText('world')).toBeInTheDocument();
+    expect(screen.getByRole('list')).toBeInTheDocument();
+    expect(screen.getAllByRole('listitem')).toHaveLength(1);
   });
 
   it('alerts when creation fails', async () => {

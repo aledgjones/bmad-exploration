@@ -69,6 +69,19 @@ test('POST /todos rejects whitespace-only text', async () => {
   expect(response.json()).toEqual({ error: 'text must be a non-empty string' });
 });
 
+test('GET /todos returns empty list when there are no todos', async () => {
+  const server = Fastify();
+  await server.register(app, options);
+  await server.ready();
+
+  // ensure database is clean in case prior tests left data
+  await prisma.todo.deleteMany();
+
+  const response = await server.inject({ method: 'GET', url: '/todos' });
+  expect(response.statusCode).toBe(200);
+  expect(response.json()).toEqual([]);
+});
+
 test('GET /todos returns list including created tasks', async () => {
   const server = Fastify();
   await server.register(app, options);

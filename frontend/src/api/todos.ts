@@ -14,6 +14,9 @@ export async function fetchTodos(): Promise<Todo[]> {
   return res.json();
 }
 
+// alias for semantic clarity in upcoming features
+export const getTodos = fetchTodos;
+
 export async function createTodo(text: string): Promise<Todo> {
   const res = await fetch('/todos', {
     method: 'POST',
