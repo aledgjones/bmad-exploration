@@ -6,6 +6,7 @@ export interface Todo {
   status: TodoStatus;
   createdAt: string;
   updatedAt: string;
+  completedAt?: string | null; // populated when status is done
 }
 
 export async function fetchTodos(): Promise<Todo[]> {

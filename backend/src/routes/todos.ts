@@ -82,9 +82,17 @@ const todos: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
       }
       fastify.log.info(`PATCH /todos/${idNum} status=${status}`);
       try {
+        // when marking done, record completion timestamp
+        const updateData: any = { status };
+        if (status === 'done') {
+          updateData.completedAt = new Date();
+        } else {
+          // clear timestamp when moving out of done
+          updateData.completedAt = null;
+        }
         const todo = await fastify.prisma.todo.update({
           where: { id: idNum },
-          data: { status },
+          data: updateData,
         });
         return todo;
       } catch (err: any) {

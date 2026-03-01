@@ -16,9 +16,10 @@ enum Status {
 }
 
 model Todo {
-  id        Int      @id @default(autoincrement())
-  text      String
-  status    Status   @default(todo)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          Int      @id @default(autoincrement())
+  text        String
+  status      Status   @default(todo)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  completedAt DateTime? // timestamp when marked done, optional
 }

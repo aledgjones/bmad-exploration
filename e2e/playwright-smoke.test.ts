@@ -125,6 +125,35 @@ test('user can change status and it persists', async () => {
   await page.waitForSelector(
     '[class*=\"line-through\"]:has-text("status item")',
   );
+  // now change back to todo and ensure completed styling removed and persists
+  await page.selectOption(
+    'div.bg-card:has-text("status item") select[aria-label="Change todo status"]',
+    'todo',
+  );
+  // wait for line-through to disappear (optimistic update)
+  await page.waitForFunction(() => {
+    const span = document.querySelector('div.bg-card span');
+    return span && !span.className.includes('line-through');
+  });
+  // verify select value is now 'todo'
+  const selVal = await page.$eval(
+    'div.bg-card:has-text("status item") select[aria-label="Change todo status"]',
+    (el) => (el as HTMLSelectElement).value,
+  );
+  expect(selVal).toBe('todo');
+  // not line-through anymore
+  const doneCheck = await page.$(
+    '[class*="line-through"]:has-text("status item")',
+  );
+  expect(doneCheck).toBeNull();
 
+  // reload and verify still not done
+  await page.reload();
+  await page.waitForSelector('text=status item');
+  const selValAfterReload = await page.$eval(
+    'div.bg-card:has-text("status item") select[aria-label="Change todo status"]',
+    (el) => (el as HTMLSelectElement).value,
+  );
+  expect(selValAfterReload).toBe('todo');
   await browser.close();
 }, 60000);

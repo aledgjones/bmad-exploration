@@ -114,6 +114,37 @@ describe('Home page data flow', () => {
     expect(mockedUpdate).toHaveBeenCalledWith(1, 'done');
   });
 
+  it('reverts from done back to another status and clears completed styling', async () => {
+    const todo = { id: 3, text: 'cycle', status: 'todo', createdAt: '', updatedAt: '' };
+    mockedFetch.mockResolvedValue([todo]);
+    // first call for done, second call for todo
+    mockedUpdate
+      .mockResolvedValueOnce({ ...todo, status: 'done' })
+      .mockResolvedValueOnce({ ...todo, status: 'todo' });
+
+    render(<Home />);
+    expect(await screen.findByText('cycle')).toBeInTheDocument();
+    let select = screen.getByLabelText(/change todo status/i);
+    fireEvent.change(select, { target: { value: 'done' } });
+    expect(mockedUpdate).toHaveBeenCalledWith(3, 'done');
+    // wait for the first update to resolve and re-render
+    await waitFor(() => {
+      expect(screen.getByLabelText(/change todo status/i)).toHaveValue('done');
+    });
+    // re-query select after re-render
+    select = screen.getByLabelText(/change todo status/i);
+    // simulate next change back to todo
+    fireEvent.change(select, { target: { value: 'todo' } });
+    await waitFor(() => {
+      expect(mockedUpdate).toHaveBeenCalledTimes(2);
+      expect(mockedUpdate).toHaveBeenLastCalledWith(3, 'todo');
+    });
+    // after revert, select value should reflect todo
+    await waitFor(() => {
+      expect(screen.getByLabelText(/change todo status/i)).toHaveValue('todo');
+    });
+  });
+
   it('rolls back status on update failure', async () => {
     const todo = { id: 1, text: 'hi', status: 'todo', createdAt: '', updatedAt: '' };
     // first fetch returns todo, second fetch (rollback) returns original
@@ -130,4 +161,6 @@ describe('Home page data flow', () => {
       expect(screen.getByLabelText(/change todo status/i)).toHaveValue('todo');
     });
   });
+
+
 });

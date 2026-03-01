@@ -178,6 +178,13 @@ test('PATCH /todos/:id updates status when valid', async () => {
     payload: { status: 'in_progress' },
   });
 
+  if (response.statusCode !== 200) {
+    console.error(
+      'PATCH update status failed',
+      response.statusCode,
+      response.json(),
+    );
+  }
   expect(response.statusCode).toBe(200);
   const body = response.json();
   expect(body).toHaveProperty('id', created.id);
@@ -186,6 +193,8 @@ test('PATCH /todos/:id updates status when valid', async () => {
   // verify database persisted
   const fromDb = await prisma.todo.findUnique({ where: { id: created.id } });
   expect(fromDb?.status).toBe('in_progress');
+  // completedAt may be null or undefined when not set
+  expect(fromDb?.completedAt == null).toBe(true);
 
   await server.close();
 });
@@ -221,8 +230,73 @@ test('PATCH /todos/:id returns 404 for missing item', async () => {
     url: '/todos/999999',
     payload: { status: 'done' },
   });
+  if (response.statusCode !== 404) {
+    console.error(
+      'expected 404 for missing id but got',
+      response.statusCode,
+      response.json(),
+    );
+  }
   expect(response.statusCode).toBe(404);
   expect(response.json()).toEqual({ error: 'todo not found' });
+
+  await server.close();
+});
+
+// new test: completion timestamp is recorded when marking done
+
+test('PATCH /todos/:id sets completedAt when status done', async () => {
+  const server = Fastify();
+  await server.register(app, options);
+  await server.ready();
+
+  const created = await prisma.todo.create({
+    data: { text: 'complete me', status: 'todo' },
+  });
+  const response = await server.inject({
+    method: 'PATCH',
+    url: `/todos/${created.id}`,
+    payload: { status: 'done' },
+  });
+  if (response.statusCode !== 200) {
+    console.error('PATCH done failed', response.statusCode, response.json());
+  }
+  expect(response.statusCode).toBe(200);
+  const body = response.json();
+  expect(body.status).toBe('done');
+  expect(body.completedAt).toBeTruthy();
+
+  const fromDb = await prisma.todo.findUnique({ where: { id: created.id } });
+  expect(fromDb?.status).toBe('done');
+  expect(fromDb?.completedAt).not.toBeNull();
+
+  await server.close();
+});
+
+// new test: completedAt cleared when status moves away from done
+
+test('PATCH /todos/:id clears completedAt when status returns from done', async () => {
+  const server = Fastify();
+  await server.register(app, options);
+  await server.ready();
+
+  // create item initially done
+  const created = await prisma.todo.create({
+    data: { text: 'change me', status: 'done', completedAt: new Date() },
+  });
+  const resp = await server.inject({
+    method: 'PATCH',
+    url: `/todos/${created.id}`,
+    payload: { status: 'todo' },
+  });
+  expect(resp.statusCode).toBe(200);
+  const b = resp.json();
+  expect(b.status).toBe('todo');
+  expect(b.completedAt).toBeNull();
+
+  const fromDb2 = await prisma.todo.findUnique({ where: { id: created.id } });
+  expect(fromDb2?.status).toBe('todo');
+  expect(fromDb2?.completedAt).toBeNull();
 
   await server.close();
 });
