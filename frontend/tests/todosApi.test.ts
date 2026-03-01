@@ -1,5 +1,5 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { updateTodoStatus } from '../src/api/todos';
+import { updateTodoStatus, deleteTodo } from '../src/api/todos';
 
 describe('todos API client', () => {
   beforeEach(() => {
@@ -53,5 +53,40 @@ describe('todos API client', () => {
     await expect(updateTodoStatus(1, 'todo')).rejects.toThrow(
       /failed to update status: 400 x/
     );
+  });
+
+  describe('deleteTodo', () => {
+    it('sends DELETE request to correct URL', async () => {
+      // @ts-ignore
+      global.fetch.mockResolvedValue({ ok: true, status: 204 });
+      await deleteTodo(7);
+      expect(global.fetch).toHaveBeenCalledWith('/todos/7', {
+        method: 'DELETE',
+      });
+    });
+
+    it('throws error on non-ok response', async () => {
+      // @ts-ignore
+      global.fetch.mockResolvedValue({
+        ok: false,
+        status: 404,
+        json: () => ({ error: 'todo not found' }),
+      });
+      await expect(deleteTodo(999)).rejects.toThrow(
+        /failed to delete todo: 404 todo not found/
+      );
+    });
+
+    it('throws generic error when json parse fails', async () => {
+      // @ts-ignore
+      global.fetch.mockResolvedValue({
+        ok: false,
+        status: 500,
+        json: () => {
+          throw new Error('bad json');
+        },
+      });
+      await expect(deleteTodo(1)).rejects.toThrow(/failed to delete todo: 500/);
+    });
   });
 });

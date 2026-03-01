@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import NewTodoForm from './components/NewTodoForm';
 import TodoList from './components/TodoList';
 import type { Todo } from '../src/api/todos';
-import { fetchTodos, createTodo, updateTodoStatus, TodoStatus } from '../src/api/todos';
+import { fetchTodos, createTodo, updateTodoStatus, deleteTodo, TodoStatus } from '../src/api/todos';
 
 export default function Home() {
   const [todos, setTodos] = useState<Todo[]>([]);
@@ -62,6 +62,21 @@ export default function Home() {
     }
   };
 
+  const handleDelete = async (id: number) => {
+    let previousTodos: Todo[] = [];
+    setTodos((prev) => {
+      previousTodos = prev;
+      return prev.filter((t) => t.id !== id);
+    });
+    try {
+      await deleteTodo(id);
+    } catch (err: any) {
+      console.error('delete failed', err);
+      setTodos(previousTodos);
+      alert('Unable to delete todo');
+    }
+  };
+
   return (
     <div
       data-testid="page-root"
@@ -75,7 +90,7 @@ export default function Home() {
         {loading ? (
           <p className="mt-4">Loading...</p>
         ) : (
-          <TodoList todos={todos} onStatusChange={handleStatusChange} />
+          <TodoList todos={todos} onStatusChange={handleStatusChange} onDelete={handleDelete} />
         )}
       </main>
     </div>

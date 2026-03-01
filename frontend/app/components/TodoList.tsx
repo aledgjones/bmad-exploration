@@ -6,11 +6,12 @@ import TodoItem from './TodoItem';
 interface TodoListProps {
   todos: Todo[];
   onStatusChange: (id: number, status: TodoStatus) => void;
+  onDelete: (id: number) => void;
 }
 
 const statusOrder: TodoStatus[] = ['todo', 'in_progress', 'done'];
 
-export default function TodoList({ todos, onStatusChange }: TodoListProps) {
+export default function TodoList({ todos, onStatusChange, onDelete }: TodoListProps) {
   if (todos.length === 0) {
     return <p className="mt-4">No todos yet.</p>;
   }
@@ -49,7 +50,7 @@ export default function TodoList({ todos, onStatusChange }: TodoListProps) {
           <ul role="list" className="mt-2 space-y-2">
             {groups[status].map((t) => (
               <li key={t.id} role="listitem">
-                <TodoItem todo={t} onStatusChange={onStatusChange} />
+                <TodoItem todo={t} onStatusChange={onStatusChange} onDelete={onDelete} />
               </li>
             ))}
           </ul>

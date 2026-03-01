@@ -66,3 +66,21 @@ export async function updateTodoStatus(
   }
   return res.json();
 }
+
+export async function deleteTodo(id: number): Promise<void> {
+  const res = await fetch(`/todos/${id}`, {
+    method: 'DELETE',
+  });
+  if (!res.ok) {
+    let msg = `failed to delete todo: ${res.status}`;
+    try {
+      const data = await res.json();
+      if (data && typeof data.error === 'string') {
+        msg += ` ${data.error}`;
+      }
+    } catch {
+      // ignore parse errors
+    }
+    throw new Error(msg);
+  }
+}

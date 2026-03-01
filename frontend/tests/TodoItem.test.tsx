@@ -14,7 +14,7 @@ describe('TodoItem component', () => {
 
   it('shows text and status dropdown badge', () => {
     const mock = vi.fn();
-    render(<TodoItem todo={baseTodo} onStatusChange={mock} />);
+    render(<TodoItem todo={baseTodo} onStatusChange={mock} onDelete={vi.fn()} />);
     expect(screen.getByText('task1')).toBeInTheDocument();
     const select = screen.getByLabelText(/change todo status/i);
     expect(select).toBeInTheDocument();
@@ -25,7 +25,7 @@ describe('TodoItem component', () => {
 
   it('calls callback with correct args when a new status selected', () => {
     const mock = vi.fn();
-    render(<TodoItem todo={baseTodo} onStatusChange={mock} />);
+    render(<TodoItem todo={baseTodo} onStatusChange={mock} onDelete={vi.fn()} />);
     const select = screen.getByLabelText(/change todo status/i);
     fireEvent.change(select, { target: { value: 'in_progress' } });
     expect(mock).toHaveBeenCalledWith(1, 'in_progress');
@@ -37,17 +37,42 @@ describe('TodoItem component', () => {
     ['done', 'bg-green-600'],
   ])('renders badge color %s -> %s', (status, cls) => {
     const t: Todo = { ...baseTodo, status: status as any };
-    render(<TodoItem todo={t} onStatusChange={vi.fn()} />);
+    render(<TodoItem todo={t} onStatusChange={vi.fn()} onDelete={vi.fn()} />);
     const select = screen.getByLabelText(/change todo status/i);
     expect(select).toHaveClass(cls);
   });
 
   it('falls back to error badge color for unknown status', () => {
     const t: Todo = { ...baseTodo, status: 'unknown' as any };
-    render(<TodoItem todo={t} onStatusChange={vi.fn()} />);
+    render(<TodoItem todo={t} onStatusChange={vi.fn()} onDelete={vi.fn()} />);
     const select = screen.getByLabelText(/change todo status/i);
     expect(select).toHaveClass('bg-red-500');
   });
 
+  it('renders delete button with correct aria-label', () => {
+    render(<TodoItem todo={baseTodo} onStatusChange={vi.fn()} onDelete={vi.fn()} />);
+    const btn = screen.getByLabelText('Delete todo');
+    expect(btn).toBeInTheDocument();
+  });
+
+  it('calls onDelete when confirm accepted', () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const deleteMock = vi.fn();
+    render(<TodoItem todo={baseTodo} onStatusChange={vi.fn()} onDelete={deleteMock} />);
+    fireEvent.click(screen.getByLabelText('Delete todo'));
+    expect(confirmSpy).toHaveBeenCalledWith('Delete this todo?');
+    expect(deleteMock).toHaveBeenCalledWith(1);
+    confirmSpy.mockRestore();
+  });
+
+  it('does NOT call onDelete when confirm cancelled', () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const deleteMock = vi.fn();
+    render(<TodoItem todo={baseTodo} onStatusChange={vi.fn()} onDelete={deleteMock} />);
+    fireEvent.click(screen.getByLabelText('Delete todo'));
+    expect(confirmSpy).toHaveBeenCalled();
+    expect(deleteMock).not.toHaveBeenCalled();
+    confirmSpy.mockRestore();
+  });
 
 });

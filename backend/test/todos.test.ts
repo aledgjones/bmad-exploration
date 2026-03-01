@@ -144,6 +144,14 @@ test('routes return 500 if prisma not initialized', async () => {
   expect(patch.statusCode).toBe(500);
   expect(patch.json()).toEqual({ error: 'database not initialized' });
 
+  // delete should also fail when prisma is null
+  const del = await server.inject({
+    method: 'DELETE',
+    url: '/todos/1',
+  });
+  expect(del.statusCode).toBe(500);
+  expect(del.json()).toEqual({ error: 'database not initialized' });
+
   await server.close();
 });
 
@@ -319,6 +327,64 @@ test('PATCH /todos/:id rejects non-numeric id', async () => {
   await server.close();
 });
 
+// --- DELETE endpoint tests ---
+
+test('DELETE /todos/:id returns 204 on success', async () => {
+  const server = Fastify();
+  await server.register(app, options);
+  await server.ready();
+
+  const created = await prisma.todo.create({
+    data: { text: 'delete me', status: 'todo' },
+  });
+
+  const response = await server.inject({
+    method: 'DELETE',
+    url: `/todos/${created.id}`,
+  });
+
+  expect(response.statusCode).toBe(204);
+  expect(response.body).toBe('');
+
+  // verify item no longer exists in DB
+  const fromDb = await prisma.todo.findUnique({ where: { id: created.id } });
+  expect(fromDb).toBeNull();
+
+  await server.close();
+});
+
+test('DELETE /todos/:id returns 404 for non-existent id', async () => {
+  const server = Fastify();
+  await server.register(app, options);
+  await server.ready();
+
+  const response = await server.inject({
+    method: 'DELETE',
+    url: '/todos/999999',
+  });
+
+  expect(response.statusCode).toBe(404);
+  expect(response.json()).toEqual({ error: 'todo not found' });
+
+  await server.close();
+});
+
+test('DELETE /todos/:id rejects non-numeric id', async () => {
+  const server = Fastify();
+  await server.register(app, options);
+  await server.ready();
+
+  const response = await server.inject({
+    method: 'DELETE',
+    url: '/todos/not-a-number',
+  });
+
+  expect(response.statusCode).toBe(400);
+  expect(response.json()).toEqual({ error: 'invalid id' });
+
+  await server.close();
+});
+
 // additional low-level tests to hit internal branches for coverage
 import todosPlugin from '../src/routes/todos';
 import { vi } from 'vitest';
@@ -334,6 +400,9 @@ test('direct handler invocation exercises trim, create/get and patch error paths
     },
     patch: (path: string, opts: any, fn: any) => {
       handlers.patch = fn;
+    },
+    delete: (path: string, opts: any, fn: any) => {
+      handlers.delete = fn;
     },
     log: { info: vi.fn(), error: vi.fn() },
     prisma: {
@@ -388,4 +457,39 @@ test('direct handler invocation exercises trim, create/get and patch error paths
   const req4: any = { params: { id: 1 }, body: { status: 'done' } };
   const result4 = await handlers.patch(req4, reply4);
   expect(reply4.send).toHaveBeenCalledWith({ error: 'todo not found' });
+
+  // DELETE handler: success path
+  fakeFastify.prisma.todo.delete = async () => ({});
+  const reply5: any = { code: vi.fn().mockReturnThis(), send: vi.fn() };
+  const req5: any = { params: { id: '1' } };
+  await handlers.delete(req5, reply5);
+  expect(reply5.code).toHaveBeenCalledWith(204);
+  expect(reply5.send).toHaveBeenCalled();
+
+  // DELETE handler: P2025 not-found error
+  fakeFastify.prisma.todo.delete = async () => {
+    const err: any = new Error('notfound');
+    err.code = 'P2025';
+    throw err;
+  };
+  const reply6: any = { code: vi.fn().mockReturnThis(), send: vi.fn() };
+  const req6: any = { params: { id: '2' } };
+  await handlers.delete(req6, reply6);
+  expect(reply6.code).toHaveBeenCalledWith(404);
+  expect(reply6.send).toHaveBeenCalledWith({ error: 'todo not found' });
+
+  // DELETE handler: generic error rethrown
+  fakeFastify.prisma.todo.delete = async () => {
+    throw new Error('boom-delete');
+  };
+  const reply7: any = { code: vi.fn().mockReturnThis(), send: vi.fn() };
+  const req7: any = { params: { id: '3' } };
+  await expect(handlers.delete(req7, reply7)).rejects.toThrow('boom-delete');
+
+  // DELETE handler: non-numeric id
+  const reply8: any = { code: vi.fn().mockReturnThis(), send: vi.fn() };
+  const req8: any = { params: { id: 'abc' } };
+  await handlers.delete(req8, reply8);
+  expect(reply8.code).toHaveBeenCalledWith(400);
+  expect(reply8.send).toHaveBeenCalledWith({ error: 'invalid id' });
 });

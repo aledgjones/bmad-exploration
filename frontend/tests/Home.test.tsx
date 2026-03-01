@@ -9,6 +9,7 @@ vi.mock('../src/api/todos', () => {
         fetchTodos: vi.fn(),
         createTodo: vi.fn(),
         updateTodoStatus: vi.fn(),
+        deleteTodo: vi.fn(),
         TodoStatus: {},
     };
 });

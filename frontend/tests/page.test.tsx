@@ -7,18 +7,20 @@ import {
 } from '@testing-library/react';
 import { vi, type Mock } from 'vitest';
 import Home from '../app/page';
-import { fetchTodos, createTodo, updateTodoStatus } from '../src/api/todos';
+import { fetchTodos, createTodo, updateTodoStatus, deleteTodo } from '../src/api/todos';
 
 // create manual mocks for the api module
 vi.mock('../src/api/todos', () => ({
   fetchTodos: vi.fn(),
   createTodo: vi.fn(),
   updateTodoStatus: vi.fn(),
+  deleteTodo: vi.fn(),
 }));
 
 const mockedFetch = fetchTodos as unknown as Mock;
 const mockedCreate = createTodo as unknown as Mock;
 const mockedUpdate = updateTodoStatus as unknown as Mock;
+const mockedDelete = deleteTodo as unknown as Mock;
 
 describe('Home page data flow', () => {
   beforeEach(() => {
@@ -164,5 +166,74 @@ describe('Home page data flow', () => {
     alertSpy.mockRestore();
   });
 
+  it('optimistically removes todo on delete and calls API', async () => {
+    const todos = [
+      { id: 1, text: 'first', status: 'todo', createdAt: '', updatedAt: '' },
+      { id: 2, text: 'second', status: 'todo', createdAt: '', updatedAt: '' },
+    ];
+    mockedFetch.mockResolvedValue(todos);
+    mockedDelete.mockResolvedValue(undefined);
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    render(<Home />);
+    expect(await screen.findByText('first')).toBeInTheDocument();
+    expect(screen.getByText('second')).toBeInTheDocument();
+
+    // click delete on the first item
+    const deleteButtons = screen.getAllByLabelText('Delete todo');
+    fireEvent.click(deleteButtons[0]);
+
+    // item should be optimistically removed
+    await waitFor(() => {
+      expect(screen.queryByText('first')).not.toBeInTheDocument();
+    });
+    expect(screen.getByText('second')).toBeInTheDocument();
+    expect(mockedDelete).toHaveBeenCalledWith(1);
+
+    confirmSpy.mockRestore();
+  });
+
+  it('restores todo on delete failure and shows alert', async () => {
+    const todos = [
+      { id: 1, text: 'keeper', status: 'todo', createdAt: '', updatedAt: '' },
+    ];
+    mockedFetch.mockResolvedValue(todos);
+    mockedDelete.mockRejectedValue(new Error('network error'));
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => { });
+
+    render(<Home />);
+    expect(await screen.findByText('keeper')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText('Delete todo'));
+
+    // item should momentarily disappear then reappear
+    await waitFor(() => {
+      expect(screen.getByText('keeper')).toBeInTheDocument();
+    });
+    expect(alertSpy).toHaveBeenCalledWith('Unable to delete todo');
+
+    confirmSpy.mockRestore();
+    alertSpy.mockRestore();
+  });
+
+  it('does not delete when confirm is cancelled', async () => {
+    const todos = [
+      { id: 1, text: 'stay', status: 'todo', createdAt: '', updatedAt: '' },
+    ];
+    mockedFetch.mockResolvedValue(todos);
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+
+    render(<Home />);
+    expect(await screen.findByText('stay')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText('Delete todo'));
+
+    // item should still be present
+    expect(screen.getByText('stay')).toBeInTheDocument();
+    expect(mockedDelete).not.toHaveBeenCalled();
+
+    confirmSpy.mockRestore();
+  });
 
 });

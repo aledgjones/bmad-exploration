@@ -157,3 +157,43 @@ test('user can change status and it persists', async () => {
   expect(selValAfterReload).toBe('todo');
   await browser.close();
 }, 60000);
+
+// --- DELETE flow tests ---
+
+test('user can delete a todo and it stays deleted after reload', async () => {
+  expect(composeEnv).not.toBeNull();
+  const port = process.env.FRONTEND_PORT || '3000';
+  const browser = await chromium.launch();
+  const page = await browser.newPage();
+  await page.goto(`http://localhost:${port}`);
+
+  // create a todo to delete
+  await page.fill('input[placeholder="New todo"]', 'delete me');
+  await page.click('button:has-text("Add")');
+  await page.waitForSelector('text=delete me');
+
+  // accept the confirmation dialog
+  page.on('dialog', (dialog) => dialog.accept());
+
+  // click the delete button on the card containing our item
+  const deleteBtn = await page.waitForSelector(
+    'div.bg-card:has-text("delete me") button[aria-label="Delete todo"]',
+  );
+  await deleteBtn.click();
+
+  // verify item disappears
+  await page.waitForSelector('text=delete me', { state: 'detached' });
+
+  // reload and verify it remains deleted
+  await page.reload();
+  // wait for page to fully load todos (loading indicator gone, heading visible)
+  await page.waitForSelector('h1:has-text("Todo List")');
+  // wait until the loading text disappears, meaning todos have been fetched
+  await page.waitForFunction(
+    () => !document.body.textContent?.includes('Loading...'),
+  );
+  const found = await page.$('text=delete me');
+  expect(found).toBeNull();
+
+  await browser.close();
+}, 60000);

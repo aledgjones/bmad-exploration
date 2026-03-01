@@ -105,6 +105,40 @@ const todos: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
       }
     },
   );
+
+  // DELETE endpoint
+  fastify.delete(
+    '/todos/:id',
+    {
+      schema: {
+        params: {
+          type: 'object',
+          required: ['id'],
+          properties: { id: { type: 'string' } },
+        },
+      },
+    },
+    async (request, reply) => {
+      if (!fastify.prisma) {
+        return reply.code(500).send({ error: 'database not initialized' });
+      }
+      const { id } = (request as any).params;
+      const idNum = Number(id);
+      if (Number.isNaN(idNum)) {
+        return reply.code(400).send({ error: 'invalid id' });
+      }
+      fastify.log.info(`DELETE /todos/${idNum}`);
+      try {
+        await fastify.prisma.todo.delete({ where: { id: idNum } });
+        return reply.code(204).send();
+      } catch (err: any) {
+        if (err.code === 'P2025') {
+          return reply.code(404).send({ error: 'todo not found' });
+        }
+        throw err;
+      }
+    },
+  );
 };
 
 export default todos;

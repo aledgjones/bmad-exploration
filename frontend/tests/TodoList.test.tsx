@@ -5,7 +5,7 @@ import { vi } from 'vitest';
 
 describe('TodoList component', () => {
   it('renders message when there are no todos', () => {
-    render(<TodoList todos={[]} onStatusChange={vi.fn()} />);
+    render(<TodoList todos={[]} onStatusChange={vi.fn()} onDelete={vi.fn()} />);
     expect(screen.getByText(/no todos yet/i)).toBeInTheDocument();
     expect(screen.queryAllByRole('listitem')).toHaveLength(0);
   });
@@ -16,7 +16,7 @@ describe('TodoList component', () => {
       { id: 2, text: 'two', status: 'done', createdAt: '', updatedAt: '' },
     ];
     const mock = vi.fn();
-    render(<TodoList todos={items} onStatusChange={mock} />);
+    render(<TodoList todos={items} onStatusChange={mock} onDelete={vi.fn()} />);
     const lists = screen.getAllByRole('list');
     expect(lists).toHaveLength(3);
     const listItems = screen.getAllByRole('listitem');
