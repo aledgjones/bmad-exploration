@@ -44,7 +44,7 @@ export default function TodoList({ todos, onStatusChange }: TodoListProps) {
       {statusOrder.map((status) => (
         <section key={status} className="">
           <h3 className="text-lg font-semibold capitalize">
-            {emojiFor(status)} {status.replace('-', ' ')}
+            {emojiFor(status)} {status.replace(/[-_]/g, ' ')}
           </h3>
           <ul role="list" className="mt-2 space-y-2">
             {groups[status].map((t) => (

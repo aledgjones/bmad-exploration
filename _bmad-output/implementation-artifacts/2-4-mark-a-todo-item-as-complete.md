@@ -1,6 +1,6 @@
 # Story 2.4: Mark a todo item as complete
 
-Status: ready-for-dev
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -21,19 +21,19 @@ so that I can finish tasks efficiently without extra UI elements.
 
 ## Tasks / Subtasks
 
-- [ ] Ensure the existing status dropdown can set an item to "Done" (AC: 1)
-  - [ ] No separate checkbox or swipe control is required
-  - [ ] Verify accessibility of the dropdown (aria-label, keyboard focus)
-- [ ] Implement frontend logic to handle the status dropdown change (AC: 1)
-  - [ ] Use `updateTodoStatus` helper to persist the new status
-  - [ ] Optimistically update local state and rollback on failure
-  - [ ] When user moves status away from Done, ensure UI removes completed styling and the backend clears timestamp
-- [ ] Backend already exposes PATCH `/todos/:id` which handles status changes (AC: 1)
-  - [ ] Confirm the handler sets `completedAt` when status is 'done'
-  - [ ] No new endpoint needed
-- [ ] Add unit tests for UI component behaviour when selecting Done; include error fallback
-- [ ] Add backend unit tests covering completedAt behavior (setting and clearing), non-existent id, and invalid requests
-- [ ] Ensure e2e Playwright test covers changing status to Done and persistence
+- [x] Ensure the existing status dropdown can set an item to "Done" (AC: 1)
+  - [x] No separate checkbox or swipe control is required
+  - [x] Verify accessibility of the dropdown (aria-label, keyboard focus)
+- [x] Implement frontend logic to handle the status dropdown change (AC: 1)
+  - [x] Use `updateTodoStatus` helper to persist the new status
+  - [x] Optimistically update local state and rollback on failure
+  - [x] When user moves status away from Done, ensure UI removes completed styling and the backend clears timestamp
+- [x] Backend already exposes PATCH `/todos/:id` which handles status changes (AC: 1)
+  - [x] Confirm the handler sets `completedAt` when status is 'done'
+  - [x] No new endpoint needed
+- [x] Add unit tests for UI component behaviour when selecting Done; include error fallback
+- [x] Add backend unit tests covering completedAt behavior (setting and clearing), non-existent id, and invalid requests
+- [x] Ensure e2e Playwright test covers changing status to Done and persistence
 
 ## Dev Notes
 
@@ -89,8 +89,8 @@ so that I can finish tasks efficiently without extra UI elements.
 - `backend/src/routes/todos.ts`
 - `backend/test/todos.test.ts`
 - `frontend/src/api/todos.ts`
-- `frontend/app/components/TodoItem.tsx`
-- `frontend/tests/TodoItem.test.tsx`
-- `frontend/tests/TodoList.test.tsx`
+- `frontend/tests/todosApi.test.ts`
 - `frontend/tests/page.test.tsx`
+- `frontend/app/components/TodoList.tsx` (bug fix: underscore display)
+- `frontend/app/page.tsx` (bug fix: reconcile server response)
 - `e2e/playwright-smoke.test.ts`

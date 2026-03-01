@@ -1,3 +1,4 @@
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { updateTodoStatus } from '../src/api/todos';
 
 describe('todos API client', () => {

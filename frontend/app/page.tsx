@@ -46,7 +46,11 @@ export default function Home() {
       }),
     );
     try {
-      await updateTodoStatus(id, status);
+      const updated = await updateTodoStatus(id, status);
+      // reconcile local state with server response (e.g. completedAt)
+      setTodos((prev) =>
+        prev.map((t) => (t.id === id ? { ...t, ...updated } : t)),
+      );
     } catch (err: any) {
       console.error('status update failed', err);
       alert('Unable to update status');

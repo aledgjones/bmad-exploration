@@ -150,6 +150,7 @@ describe('Home page data flow', () => {
     // first fetch returns todo, second fetch (rollback) returns original
     mockedFetch.mockResolvedValueOnce([todo]).mockResolvedValueOnce([todo]);
     mockedUpdate.mockRejectedValue(new Error('fail'));
+    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => { });
 
     render(<Home />);
     expect(await screen.findByText('hi')).toBeInTheDocument();
@@ -160,6 +161,7 @@ describe('Home page data flow', () => {
     await waitFor(() => {
       expect(screen.getByLabelText(/change todo status/i)).toHaveValue('todo');
     });
+    alertSpy.mockRestore();
   });
 
 
