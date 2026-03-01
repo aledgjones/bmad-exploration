@@ -51,7 +51,7 @@ development_status:
   epic-2: in-progress
   2-1-add-a-new-todo-item: done
   2-2-view-list-of-todos-on-load: done
-  2-3-change-todo-status-among-to-do-in-progress-done: review
+  2-3-change-todo-status-among-to-do-in-progress-done: done
   2-4-mark-a-todo-item-as-complete: backlog
   2-5-delete-a-todo-item: backlog
   2-6-edit-the-text-of-an-existing-todo: backlog

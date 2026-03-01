@@ -28,9 +28,9 @@ so that I can indicate progress.
 - [x] Create or extend backend route PATCH `/todos/:id` (AC: 1)
   - [x] Validate incoming status value (`To Do` | `In Progress` | `Done`)
   - [x] Use Prisma to update `status` field and return updated object
-- [x] Add unit tests for UI component behaviour and status change logic
-- [x] Add backend unit tests for PATCH endpoint, including invalid status and non-existent id
-- [x] Add e2e Playwright test verifying status change persists and UI updates
+- Added unit tests for UI component behaviour and status change logic; added error‑fallback colour test
+- Add backend unit tests for PATCH endpoint, including invalid status, non-existent id, and non-numeric id
+- Add e2e Playwright test verifying status change persists and UI updates; cleaned redundant code
 
 ## Dev Notes
 
@@ -110,23 +110,25 @@ Scaffold created; now ready for developer execution. Once implemented, mark `Sta
 ### Implementation Plan
 
 - Added `TodoItem` component with badge‑style status dropdown (`<select>`) and ARIA label for accessibility.
-- Each status option is coloured differently (gray/yellow/green) via `badgeColor` helper.
+- Each status option is coloured differently (gray/yellow/green) via `badgeColor` helper; invalid statuses render red.
 - Extended API client (`todos.ts`) with `updateTodoStatus` helper and status type.
-- Modified `page.tsx` to handle optimistic UI updates and call backend, with debug logs.
-- Added PATCH `/todos/:id` route in backend with validation, Prisma update and logging.
+- Modified `page.tsx` to handle optimistic UI updates with rollback logic; all debug `console.log` statements removed.
+- Added PATCH `/todos/:id` route in backend with validation, Prisma update and logging; coerced `id` to a number and return 400 for non‑numeric values.
 - Updated Next.js rewrites (`next.config.ts`) to proxy `/todos/:path*` to backend.
-- Created new unit tests for `TodoItem`, API client, and extended existing `TodoList` test.
-- Added backend tests for PATCH (valid, invalid, missing id) and enhanced e2e flow.
-- Added console/logging to aid debugging and ensure e2e visibility.
+- Created new unit tests for `TodoItem`, API client, `TodoList`, and added a home-page test for rollback behaviour.
+- Added backend tests for PATCH (valid status, invalid status, non-existent id, and non-numeric id) and enhanced e2e flow.
+- Added comprehensive migrations and Prisma schema change: enum for status, default 'todo'.
 
 ### Completion Notes
 
 - All defined tasks have been implemented and verified via unit/e2e tests.
 - UI uses dropdown badges rather than buttons; keyboard and screen-reader users can interact.
-- Optimistic updates occur and rollback on failure; network errors are handled.
+- Optimistic updates occur and rollback on failure (tested); network errors are handled.
 - Status persists across page reloads, confirmed by both UI and server state.
 - No additional dependencies were introduced; existing patterns reused.
-- Backend logs now record patch operations for future troubleshooting.
+- Backend logs now record patch operations; id coercion ensures robustness.
+- Database schema updated to enforce allowed statuses; migration added.
+- **Review issues addressed**: enum schema, id coercion, rollback tests, logging cleaned, e2e cleaned.
 
 ## File List
 
@@ -137,6 +139,7 @@ Scaffold created; now ready for developer execution. Once implemented, mark `Sta
 - `frontend/tests/TodoItem.test.tsx` (new)
 - `frontend/tests/todosApi.test.ts` (new)
 - `frontend/tests/TodoList.test.tsx` (modified)
+- `frontend/tests/Home.test.tsx` (new)
 - `e2e/playwright-smoke.test.ts` (modified)
 - `backend/src/routes/todos.ts` (modified)
 - `backend/test/todos.test.ts` (modified)

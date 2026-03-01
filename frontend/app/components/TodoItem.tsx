@@ -10,7 +10,7 @@ interface TodoItemProps {
 
 const statusOptions: { value: TodoStatus; label: string }[] = [
   { value: 'todo', label: 'To Do' },
-  { value: 'in-progress', label: 'In Progress' },
+  { value: 'in_progress', label: 'In Progress' },
   { value: 'done', label: 'Done' },
 ];
 
@@ -18,12 +18,13 @@ function badgeColor(status: TodoStatus) {
   switch (status) {
     case 'todo':
       return 'bg-gray-200 text-gray-900';
-    case 'in-progress':
+    case 'in_progress':
       return 'bg-blue-500 text-white';
     case 'done':
       return 'bg-green-600 text-white';
     default:
-      return 'bg-gray-200 text-gray-900';
+      // highlight invalid state in red
+      return 'bg-red-500 text-white';
   }
 }
 

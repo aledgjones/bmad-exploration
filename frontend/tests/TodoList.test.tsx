@@ -37,7 +37,7 @@ describe('TodoList component', () => {
     });
     // changing the status select should call the callback
     const select = screen.getAllByLabelText(/change todo status/i)[0];
-    fireEvent.change(select, { target: { value: 'in-progress' } });
+    fireEvent.change(select, { target: { value: 'in_progress' } });
     expect(mock).toHaveBeenCalled();
   });
 });

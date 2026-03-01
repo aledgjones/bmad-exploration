@@ -17,15 +17,25 @@ beforeAll(async () => {
   process.env.DATABASE_URL = container.getConnectionUri();
   prisma = new PrismaClient();
   await prisma.$connect();
-  // apply migrations so table exists
+  // apply migrations using Prisma CLI; the database container is already running
+  // this relies on the CLI to generate/apply SQL, not manual edits to migration files
   await new Promise<void>((resolve, reject) => {
     const { spawn } = require('child_process');
     const cmd = spawn('npx', ['prisma', 'migrate', 'deploy'], {
       env: process.env,
     });
+    let out = '';
+    let err = '';
+    cmd.stdout.on('data', (b: Buffer) => (out += b.toString()));
+    cmd.stderr.on('data', (b: Buffer) => (err += b.toString()));
     cmd.on('exit', (code: number) => {
-      if (code === 0) resolve();
-      else reject(new Error('migration failed'));
+      if (code === 0) {
+        resolve();
+      } else {
+        console.error('migration stdout:', out);
+        console.error('migration stderr:', err);
+        reject(new Error('migration failed'));
+      }
     });
   });
 });
@@ -35,7 +45,7 @@ afterAll(async () => {
   if (container) await container.stop();
 });
 
-test('POST /todos creates a todo', async () => {
+test('POST /todos creates a todo with default status', async () => {
   const server = Fastify();
   await server.register(app, options);
   await server.ready();
@@ -50,6 +60,7 @@ test('POST /todos creates a todo', async () => {
   const body = response.json();
   expect(body).toHaveProperty('id');
   expect(body.text).toBe('my task');
+  expect(body.status).toBe('todo'); // new assertion based on enum default
 });
 
 // new test - whitespace should fail
@@ -88,7 +99,7 @@ test('GET /todos returns list including created tasks', async () => {
   await server.ready();
 
   // create one entry via prisma directly to ensure something exists
-  await prisma.todo.create({ data: { text: 'another' } });
+  await prisma.todo.create({ data: { text: 'another', status: 'todo' } });
   const response = await server.inject({ method: 'GET', url: '/todos' });
   expect(response.statusCode).toBe(200);
   const list = response.json();
@@ -157,22 +168,24 @@ test('PATCH /todos/:id updates status when valid', async () => {
   await server.ready();
 
   // create a todo directly with prisma so we know id
-  const created = await prisma.todo.create({ data: { text: 'foo' } });
+  const created = await prisma.todo.create({
+    data: { text: 'foo', status: 'todo' },
+  });
 
   const response = await server.inject({
     method: 'PATCH',
     url: `/todos/${created.id}`,
-    payload: { status: 'in-progress' },
+    payload: { status: 'in_progress' },
   });
 
   expect(response.statusCode).toBe(200);
   const body = response.json();
   expect(body).toHaveProperty('id', created.id);
-  expect(body.status).toBe('in-progress');
+  expect(body.status).toBe('in_progress');
 
   // verify database persisted
   const fromDb = await prisma.todo.findUnique({ where: { id: created.id } });
-  expect(fromDb?.status).toBe('in-progress');
+  expect(fromDb?.status).toBe('in_progress');
 
   await server.close();
 });
@@ -182,7 +195,9 @@ test('PATCH /todos/:id rejects invalid status', async () => {
   await server.register(app, options);
   await server.ready();
 
-  const created = await prisma.todo.create({ data: { text: 'bar' } });
+  const created = await prisma.todo.create({
+    data: { text: 'bar', status: 'todo' },
+  });
 
   const response = await server.inject({
     method: 'PATCH',
@@ -208,6 +223,24 @@ test('PATCH /todos/:id returns 404 for missing item', async () => {
   });
   expect(response.statusCode).toBe(404);
   expect(response.json()).toEqual({ error: 'todo not found' });
+
+  await server.close();
+});
+
+// new test to exercise invalid id parsing
+
+test('PATCH /todos/:id rejects non-numeric id', async () => {
+  const server = Fastify();
+  await server.register(app, options);
+  await server.ready();
+
+  const response = await server.inject({
+    method: 'PATCH',
+    url: '/todos/not-a-number',
+    payload: { status: 'todo' },
+  });
+  expect(response.statusCode).toBe(400);
+  expect(response.json()).toEqual({ error: 'invalid id' });
 
   await server.close();
 });

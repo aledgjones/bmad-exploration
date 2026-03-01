@@ -8,7 +8,7 @@ interface TodoListProps {
   onStatusChange: (id: number, status: TodoStatus) => void;
 }
 
-const statusOrder: TodoStatus[] = ['todo', 'in-progress', 'done'];
+const statusOrder: TodoStatus[] = ['todo', 'in_progress', 'done'];
 
 export default function TodoList({ todos, onStatusChange }: TodoListProps) {
   if (todos.length === 0) {
@@ -18,7 +18,7 @@ export default function TodoList({ todos, onStatusChange }: TodoListProps) {
   // group by status
   const groups: Record<TodoStatus, Todo[]> = {
     todo: [],
-    'in-progress': [],
+    'in_progress': [],
     done: [],
   };
   todos.forEach((t) => {
@@ -30,7 +30,7 @@ export default function TodoList({ todos, onStatusChange }: TodoListProps) {
     switch (status) {
       case 'todo':
         return '📝';
-      case 'in-progress':
+      case 'in_progress':
         return '⏳';
       case 'done':
         return '✅';

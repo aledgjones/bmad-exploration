@@ -27,13 +27,13 @@ describe('TodoItem component', () => {
     const mock = vi.fn();
     render(<TodoItem todo={baseTodo} onStatusChange={mock} />);
     const select = screen.getByLabelText(/change todo status/i);
-    fireEvent.change(select, { target: { value: 'in-progress' } });
-    expect(mock).toHaveBeenCalledWith(1, 'in-progress');
+    fireEvent.change(select, { target: { value: 'in_progress' } });
+    expect(mock).toHaveBeenCalledWith(1, 'in_progress');
   });
 
   it.each([
     ['todo', 'bg-gray-200'],
-    ['in-progress', 'bg-blue-500'],
+    ['in_progress', 'bg-blue-500'],
     ['done', 'bg-green-600'],
   ])('renders badge color %s -> %s', (status, cls) => {
     const t: Todo = { ...baseTodo, status: status as any };
@@ -42,10 +42,10 @@ describe('TodoItem component', () => {
     expect(select).toHaveClass(cls);
   });
 
-  it('falls back to default badge color for unknown status', () => {
+  it('falls back to error badge color for unknown status', () => {
     const t: Todo = { ...baseTodo, status: 'unknown' as any };
     render(<TodoItem todo={t} onStatusChange={vi.fn()} />);
     const select = screen.getByLabelText(/change todo status/i);
-    expect(select).toHaveClass('bg-gray-200');
+    expect(select).toHaveClass('bg-red-500');
   });
 });

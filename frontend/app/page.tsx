@@ -34,20 +34,27 @@ export default function Home() {
   };
 
   const handleStatusChange = async (id: number, status: TodoStatus) => {
-    console.log('handleStatusChange called', id, status);
-    // optimistic update
-    setTodos((prev) => prev.map((t) => (t.id === id ? { ...t, status } : t)));
+    // optimistic update with rollback support
+    let previousStatus: TodoStatus | undefined;
+    setTodos((prev) =>
+      prev.map((t) => {
+        if (t.id === id) {
+          previousStatus = t.status;
+          return { ...t, status };
+        }
+        return t;
+      }),
+    );
     try {
-      console.log('calling updateTodoStatus...');
-      const res = await updateTodoStatus(id, status);
-      console.log('updateTodoStatus result', res);
+      await updateTodoStatus(id, status);
     } catch (err: any) {
       console.error('status update failed', err);
       alert('Unable to update status');
-      // rollback by refetching or resetting to original state
-      fetchTodos()
-        .then((list) => setTodos(list))
-        .catch(() => { });
+      if (previousStatus !== undefined) {
+        setTodos((prev) =>
+          prev.map((t) => (t.id === id ? { ...t, status: previousStatus! } : t)),
+        );
+      }
     }
   };
 

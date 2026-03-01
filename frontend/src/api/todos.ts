@@ -1,4 +1,4 @@
-export type TodoStatus = 'todo' | 'in-progress' | 'done';
+export type TodoStatus = 'todo' | 'in_progress' | 'done';
 
 export interface Todo {
   id: number;

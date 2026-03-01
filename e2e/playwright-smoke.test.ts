@@ -85,38 +85,11 @@ test('user can change status and it persists', async () => {
   const port = process.env.FRONTEND_PORT || '3000';
   const browser = await chromium.launch();
   const page = await browser.newPage();
-  page.on('console', (msg) => {
-    console.log('PAGE LOG>', msg.text());
-  });
-  let patchCount = 0;
-  // log PATCH response details to help debug persistence
-  page.on('response', async (res) => {
-    if (res.url().includes('/todos')) {
-      console.log(
-        'todos response',
-        res.request().method(),
-        res.status(),
-        res.url(),
-      );
-    }
-    if (res.request().method() === 'PATCH' && res.url().includes('/todos/')) {
-      patchCount++;
-      try {
-        const txt = await res.text();
-        console.log('PATCH body', txt);
-      } catch {}
-    }
-  });
   await page.goto(`http://localhost:${port}`);
   // create a fresh todo
   await page.fill('input[placeholder="New todo"]', 'status item');
   await page.click('button:has-text("Add")');
   await page.waitForSelector('text=status item');
-
-  // previously intercepted PATCH calls, but this hook caused errors and
-  // prevented requests from reaching the backend.  We'll rely on the response
-  // listener above instead and omit manual interception.
-  // patchCount is tracked via the response listener defined earlier
 
   // locate the card we just added so we operate on the correct row
   const myCard = await page.waitForSelector(
@@ -128,9 +101,9 @@ test('user can change status and it persists', async () => {
     return sel;
   };
 
-  // change to in-progress and then done via the select within the card
+  // change to in_progress and then done via the select within the card
   let statusSelect = await getSelect();
-  await statusSelect.selectOption('in-progress');
+  await statusSelect.selectOption('in_progress');
   // element may detach when the item re-renders, so select via DOM query each time
   await page.selectOption(
     'div.bg-card:has-text("status item") select[aria-label="Change todo status"]',

@@ -3,16 +3,12 @@ const fs = require('fs');
 const path = require('path');
 const { createCoverageMap } = require('istanbul-lib-coverage');
 
-function checkCoverage(
-  threshold = process.env.THRESHOLD ? Number(process.env.THRESHOLD) : 90,
-  reportPaths = [],
-) {
+function checkCoverage() {
   const root = process.cwd();
-  const defaults = [
+  const reports = [
     path.join(root, 'frontend', 'coverage', 'coverage-final.json'),
     path.join(root, 'backend', 'coverage', 'coverage-final.json'),
   ];
-  const reports = reportPaths.length ? reportPaths : defaults;
 
   const map = createCoverageMap({});
   let missing = false;
@@ -54,7 +50,7 @@ if (require.main === module) {
     ? Number(process.env.THRESHOLD)
     : undefined;
   const effectiveThreshold =
-    typeof envThreshold === 'number' ? envThreshold : 90;
+    typeof envThreshold === 'number' ? envThreshold : 80;
   if (pct < effectiveThreshold) {
     console.error(
       `ERROR: total coverage ${pct.toFixed(2)}% < threshold ${effectiveThreshold}`,

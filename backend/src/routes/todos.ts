@@ -49,10 +49,11 @@ const todos: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
     '/todos/:id',
     {
       schema: {
+        // treat id as string to allow custom numeric parsing/validation
         params: {
           type: 'object',
           required: ['id'],
-          properties: { id: { type: 'number' } },
+          properties: { id: { type: 'string' } },
         },
         body: {
           type: 'object',
@@ -60,7 +61,7 @@ const todos: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
           properties: {
             status: {
               type: 'string',
-              enum: ['todo', 'in-progress', 'done'],
+              enum: ['todo', 'in_progress', 'done'],
             },
           },
         },
@@ -74,10 +75,15 @@ const todos: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
         params: { id },
         body: { status },
       } = request as any;
-      fastify.log.info(`PATCH /todos/${id} status=${status}`);
+      // ensure id is numeric even if coercion is disabled
+      const idNum = Number(id);
+      if (Number.isNaN(idNum)) {
+        return reply.code(400).send({ error: 'invalid id' });
+      }
+      fastify.log.info(`PATCH /todos/${idNum} status=${status}`);
       try {
         const todo = await fastify.prisma.todo.update({
-          where: { id },
+          where: { id: idNum },
           data: { status },
         });
         return todo;

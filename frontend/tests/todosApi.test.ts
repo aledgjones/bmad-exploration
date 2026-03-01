@@ -32,7 +32,7 @@ describe('todos API client', () => {
       json: () => ({ error: 'x' }),
     });
     await expect(updateTodoStatus(1, 'todo')).rejects.toThrow(
-      /failed to update status/
+      /failed to update status: 400 x/
     );
   });
 });
