@@ -13,7 +13,10 @@ const eslintConfig = defineConfig([
       prettier: prettierPlugin,
     },
     rules: {
-      'prettier/prettier': 'error',
+      // enforce same brace spacing as Prettier
+      'prettier/prettier': ['error', { bracketSpacing: true }],
+      // only require spaces when there is at least one property (empty braces remain {} )
+      'object-curly-spacing': ['error', 'always', { minProperties: 1 }],
     },
   },
   // Override default ignores of eslint-config-next.

@@ -7,16 +7,18 @@ import {
 } from '@testing-library/react';
 import { vi, type Mock } from 'vitest';
 import Home from '../app/page';
-import { fetchTodos, createTodo } from '../src/api/todos';
+import { fetchTodos, createTodo, updateTodoStatus } from '../src/api/todos';
 
 // create manual mocks for the api module
 vi.mock('../src/api/todos', () => ({
   fetchTodos: vi.fn(),
   createTodo: vi.fn(),
+  updateTodoStatus: vi.fn(),
 }));
 
 const mockedFetch = fetchTodos as unknown as Mock;
 const mockedCreate = createTodo as unknown as Mock;
+const mockedUpdate = updateTodoStatus as unknown as Mock;
 
 describe('Home page data flow', () => {
   beforeEach(() => {
@@ -25,12 +27,13 @@ describe('Home page data flow', () => {
 
   it('fetches todos on load and displays them', async () => {
     const fake = [
-      { id: 1, text: 'hello', status: 'pending', createdAt: '', updatedAt: '' },
+      { id: 1, text: 'hello', status: 'todo', createdAt: '', updatedAt: '' },
     ];
     mockedFetch.mockResolvedValue(fake);
     render(<Home />);
     expect(await screen.findByText('hello')).toBeInTheDocument();
-    expect(screen.getByRole('list')).toBeInTheDocument();
+    // component renders three empty lists (one per status) – ensure we at least have them
+    expect(screen.getAllByRole('list')).toHaveLength(3);
     expect(screen.getAllByRole('listitem')).toHaveLength(1);
     // page outer div should use grey background class
     const root = screen.getByTestId('page-root');
@@ -54,7 +57,7 @@ describe('Home page data flow', () => {
     const created = {
       id: 2,
       text: 'world',
-      status: 'pending',
+      status: 'todo',
       createdAt: '',
       updatedAt: '',
     };
@@ -66,7 +69,7 @@ describe('Home page data flow', () => {
     fireEvent.click(screen.getByText(/Add/i));
 
     expect(await screen.findByText('world')).toBeInTheDocument();
-    expect(screen.getByRole('list')).toBeInTheDocument();
+    expect(screen.getAllByRole('list')).toHaveLength(3);
     expect(screen.getAllByRole('listitem')).toHaveLength(1);
   });
 
@@ -90,11 +93,41 @@ describe('Home page data flow', () => {
         'Unable to add todo. Is the backend running?'
       );
     });
-    // input should still hold the attempted value so user can retry
     expect(screen.getByPlaceholderText(/New todo/i)).toHaveValue('oops');
 
-    // restore spies to avoid leak
     alertSpy.mockRestore();
     errorSpy.mockRestore();
+  });
+
+  it('optimistically updates status and persists on success', async () => {
+    const todo = { id: 1, text: 'hi', status: 'todo', createdAt: '', updatedAt: '' };
+    mockedFetch.mockResolvedValue([todo]);
+    mockedUpdate.mockResolvedValue({ ...todo, status: 'done' });
+
+    render(<Home />);
+    expect(await screen.findByText('hi')).toBeInTheDocument();
+    const select = screen.getByLabelText(/change todo status/i);
+    fireEvent.change(select, { target: { value: 'done' } });
+
+    // optimistic change should reflect immediately
+    expect((select as HTMLSelectElement).value).toBe('done');
+    expect(mockedUpdate).toHaveBeenCalledWith(1, 'done');
+  });
+
+  it('rolls back status on update failure', async () => {
+    const todo = { id: 1, text: 'hi', status: 'todo', createdAt: '', updatedAt: '' };
+    // first fetch returns todo, second fetch (rollback) returns original
+    mockedFetch.mockResolvedValueOnce([todo]).mockResolvedValueOnce([todo]);
+    mockedUpdate.mockRejectedValue(new Error('fail'));
+
+    render(<Home />);
+    expect(await screen.findByText('hi')).toBeInTheDocument();
+    const select = screen.getByLabelText(/change todo status/i);
+    fireEvent.change(select, { target: { value: 'done' } });
+    expect((select as HTMLSelectElement).value).toBe('done');
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/change todo status/i)).toHaveValue('todo');
+    });
   });
 });

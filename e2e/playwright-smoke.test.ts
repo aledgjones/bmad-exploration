@@ -32,6 +32,8 @@ test('frontend homepage reachable through compose stack', async () => {
 
 // exercise the new-todo flow end-to-end
 test('user can create a todo via UI', async () => {
+  // increased timeout due to compose startup
+
   expect(composeEnv).not.toBeNull();
   const port = process.env.FRONTEND_PORT || '3000';
   const browser = await chromium.launch();
@@ -57,7 +59,7 @@ test('user can create a todo via UI', async () => {
   const bodyText = await page.textContent('body');
   expect(bodyText).toContain('walk the dog');
   await browser.close();
-});
+}, 30000);
 
 // new test: verify todos persist on reload
 test('todos persist after page refresh', async () => {
@@ -116,28 +118,33 @@ test('user can change status and it persists', async () => {
   // listener above instead and omit manual interception.
   // patchCount is tracked via the response listener defined earlier
 
-  // change to in-progress and then done via dropdown badge
-  await page.selectOption(
-    'select[aria-label="Change todo status"]',
-    'in-progress',
+  // locate the card we just added so we operate on the correct row
+  const myCard = await page.waitForSelector(
+    'div.bg-card:has-text("status item")',
   );
-  await page.selectOption('select[aria-label="Change todo status"]', 'done');
+  const getSelect = async () => {
+    const sel = await myCard.$('select[aria-label="Change todo status"]');
+    if (!sel) throw new Error('status dropdown not found');
+    return sel;
+  };
 
-  // after done, card should have line-through style locally
+  // change to in-progress and then done via the select within the card
+  let statusSelect = await getSelect();
+  await statusSelect.selectOption('in-progress');
+  // element may detach when the item re-renders, so select via DOM query each time
+  await page.selectOption(
+    'div.bg-card:has-text("status item") select[aria-label="Change todo status"]',
+    'done',
+  );
+
+  // after done, card should eventually have line-through style locally
+  await page.waitForSelector(
+    '[class*=\"line-through\"]:has-text("status item")',
+  );
   const doneCard = await page.$(
     '[class*=\"line-through\"]:has-text("status item")',
   );
   expect(doneCard).not.toBeNull();
-
-  // check server-side data directly
-  const serverTodos = await page.evaluate(async () => {
-    const res = await fetch('/todos');
-    return res.json();
-  });
-  console.log('server todos after patches', serverTodos);
-  const updated = serverTodos.find((t: any) => t.text === 'status item');
-  expect(updated).toBeDefined();
-  expect(updated.status).toBe('done');
 
   // refresh and confirm still done
   await page.reload();

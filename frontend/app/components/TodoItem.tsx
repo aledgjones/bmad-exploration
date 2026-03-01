@@ -1,20 +1,20 @@
 'use client';
 
 import { Card, CardContent } from '@/components/ui/card';
-import type { Todo } from '../../src/api/todos';
+import type { Todo, TodoStatus } from '../../src/api/todos';
 
 interface TodoItemProps {
   todo: Todo;
-  onStatusChange: (id: number, status: string) => void;
+  onStatusChange: (id: number, status: TodoStatus) => void;
 }
 
-const statusOptions: { value: string; label: string }[] = [
+const statusOptions: { value: TodoStatus; label: string }[] = [
   { value: 'todo', label: 'To Do' },
   { value: 'in-progress', label: 'In Progress' },
   { value: 'done', label: 'Done' },
 ];
 
-function badgeColor(status: string) {
+function badgeColor(status: TodoStatus) {
   switch (status) {
     case 'todo':
       return 'bg-gray-200 text-gray-900';
@@ -39,7 +39,7 @@ export default function TodoItem({ todo, onStatusChange }: TodoItemProps) {
         <select
           aria-label="Change todo status"
           value={todo.status}
-          onChange={(e) => onStatusChange(todo.id, e.target.value)}
+          onChange={(e) => onStatusChange(todo.id, e.target.value as TodoStatus)}
           className={`px-4 py-1 text-xs text-center rounded-full ${badgeColor(todo.status)} appearance-none cursor-pointer`}
         >
           {statusOptions.map((opt) => (

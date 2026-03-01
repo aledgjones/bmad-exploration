@@ -1,18 +1,14 @@
 'use client';
 
-import type { Todo } from '../../src/api/todos';
+import type { Todo, TodoStatus } from '../../src/api/todos';
 import TodoItem from './TodoItem';
 
 interface TodoListProps {
   todos: Todo[];
-  onStatusChange: (id: number, status: string) => void;
+  onStatusChange: (id: number, status: TodoStatus) => void;
 }
 
-const statusOrder: Array<'todo' | 'in-progress' | 'done'> = [
-  'todo',
-  'in-progress',
-  'done',
-];
+const statusOrder: TodoStatus[] = ['todo', 'in-progress', 'done'];
 
 export default function TodoList({ todos, onStatusChange }: TodoListProps) {
   if (todos.length === 0) {
@@ -20,13 +16,17 @@ export default function TodoList({ todos, onStatusChange }: TodoListProps) {
   }
 
   // group by status
-  const groups: Record<string, Todo[]> = { todo: [], 'in-progress': [], done: [] };
+  const groups: Record<TodoStatus, Todo[]> = {
+    todo: [],
+    'in-progress': [],
+    done: [],
+  };
   todos.forEach((t) => {
     if (groups[t.status]) groups[t.status].push(t);
     else groups[t.status] = [t];
   });
 
-  const emojiFor = (status: string) => {
+  const emojiFor = (status: TodoStatus) => {
     switch (status) {
       case 'todo':
         return '📝';

@@ -1,7 +1,9 @@
+export type TodoStatus = 'todo' | 'in-progress' | 'done';
+
 export interface Todo {
   id: number;
   text: string;
-  status: string;
+  status: TodoStatus;
   createdAt: string;
   updatedAt: string;
 }
@@ -38,8 +40,7 @@ export async function createTodo(text: string): Promise<Todo> {
   return res.json();
 }
 
-// helper for updating status
-export type TodoStatus = 'todo' | 'in-progress' | 'done';
+// helper for updating status (already defined above)
 
 export async function updateTodoStatus(
   id: number,

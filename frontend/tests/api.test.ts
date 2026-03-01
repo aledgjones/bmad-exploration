@@ -8,10 +8,11 @@ beforeEach(() => {
 
 describe('API client', () => {
   it('throws descriptive error when server returns 500', async () => {
-    (global.fetch as unknown as vi.Mock).mockResolvedValue({
+    // cast to any since vitest.Mock type isn't directly available here
+    (global.fetch as unknown as any).mockResolvedValue({
       ok: false,
       status: 500,
-      text: () => Promise.resolve('no db'),
+      json: () => Promise.resolve({ error: 'no db' }),
     });
 
     await expect(createTodo('test')).rejects.toThrow(

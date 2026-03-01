@@ -124,6 +124,15 @@ test('routes return 500 if prisma not initialized', async () => {
   expect(get.statusCode).toBe(500);
   expect(get.json()).toEqual({ error: 'database not initialized' });
 
+  // patch should also fail when prisma is null
+  const patch = await server.inject({
+    method: 'PATCH',
+    url: '/todos/1',
+    payload: { status: 'todo' },
+  });
+  expect(patch.statusCode).toBe(500);
+  expect(patch.json()).toEqual({ error: 'database not initialized' });
+
   await server.close();
 });
 
@@ -201,4 +210,75 @@ test('PATCH /todos/:id returns 404 for missing item', async () => {
   expect(response.json()).toEqual({ error: 'todo not found' });
 
   await server.close();
+});
+
+// additional low-level tests to hit internal branches for coverage
+import todosPlugin from '../src/routes/todos';
+import { vi } from 'vitest';
+
+test('direct handler invocation exercises trim, create/get and patch error paths', async () => {
+  const handlers: any = {};
+  const fakeFastify: any = {
+    post: (path: string, opts: any, fn: any) => {
+      handlers.post = fn;
+    },
+    get: (path: string, fn: any) => {
+      handlers.get = fn;
+    },
+    patch: (path: string, opts: any, fn: any) => {
+      handlers.patch = fn;
+    },
+    log: { info: vi.fn(), error: vi.fn() },
+    prisma: {
+      todo: {
+        create: async (p: any) => p.data,
+        findMany: async () => [],
+        update: async () => ({}),
+      },
+    },
+  };
+
+  await todosPlugin(fakeFastify, {} as any);
+
+  // POST handler: whitespace trim logic
+  const reply1: any = { code: vi.fn().mockReturnThis(), send: vi.fn() };
+  await handlers.post({ body: { text: '   ' } }, reply1);
+  expect(reply1.send).toHaveBeenCalledWith({
+    error: 'text must be a non-empty string',
+  });
+
+  // POST handler: success path should call prisma.create and reply
+  const replySuccess: any = { code: vi.fn().mockReturnThis(), send: vi.fn() };
+  const reqSuccess: any = { body: { text: 'ok' } };
+  fakeFastify.prisma.todo.create = async (p: any) => ({ id: 42, ...p.data });
+  await handlers.post(reqSuccess, replySuccess);
+  expect(replySuccess.send).toHaveBeenCalledWith({
+    id: 42,
+    text: 'ok',
+    status: 'todo',
+  });
+
+  // GET handler: returns empty list via return value
+  const reply2: any = { code: vi.fn().mockReturnThis(), send: vi.fn() };
+  const result = await handlers.get({}, reply2);
+  expect(result).toEqual([]);
+
+  // PATCH handler: simulate generic error (not P2025)
+  fakeFastify.prisma.todo.update = async () => {
+    throw new Error('boom');
+  };
+  const reply3: any = { code: vi.fn().mockReturnThis(), send: vi.fn() };
+  const req3: any = { params: { id: 1 }, body: { status: 'todo' } };
+  await expect(handlers.patch(req3, reply3)).rejects.toThrow('boom');
+
+  // PATCH handler: simulate P2025 not-found error
+  fakeFastify.prisma.todo.update = async () => {
+    const err: any = new Error('notfound');
+    err.code = 'P2025';
+    throw err;
+  };
+  const reply4: any = { code: vi.fn().mockReturnThis(), send: vi.fn() };
+  const req4: any = { params: { id: 1 }, body: { status: 'done' } };
+  const result4 = await handlers.patch(req4, reply4);
+  expect(reply4.send).toHaveBeenCalledWith({ error: 'todo not found' });
 });

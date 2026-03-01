@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import NewTodoForm from './components/NewTodoForm';
 import TodoList from './components/TodoList';
 import type { Todo } from '../src/api/todos';
-import { fetchTodos, createTodo, updateTodoStatus } from '../src/api/todos';
+import { fetchTodos, createTodo, updateTodoStatus, TodoStatus } from '../src/api/todos';
 
 export default function Home() {
   const [todos, setTodos] = useState<Todo[]>([]);
@@ -33,12 +33,10 @@ export default function Home() {
     }
   };
 
-  const handleStatusChange = async (id: number, status: string) => {
+  const handleStatusChange = async (id: number, status: TodoStatus) => {
     console.log('handleStatusChange called', id, status);
     // optimistic update
-    setTodos((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, status } : t)),
-    );
+    setTodos((prev) => prev.map((t) => (t.id === id ? { ...t, status } : t)));
     try {
       console.log('calling updateTodoStatus...');
       const res = await updateTodoStatus(id, status);
