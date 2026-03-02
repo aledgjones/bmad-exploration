@@ -14,7 +14,20 @@ const statusOrder: TodoStatus[] = ['todo', 'in_progress', 'done'];
 
 export default function TodoList({ todos, onStatusChange, onDelete, onEdit }: TodoListProps) {
   if (todos.length === 0) {
-    return <p className="mt-4">No todos yet.</p>;
+    return (
+      <div
+        className="mt-8 w-full flex flex-col items-center justify-center py-12 text-center"
+        data-testid="empty-state"
+      >
+        <span className="text-4xl mb-3" role="img" aria-label="No tasks yet">
+          📋
+        </span>
+        <p className="text-lg font-medium text-muted-foreground">No tasks yet</p>
+        <p className="text-sm text-muted-foreground mt-1">
+          Add one above to get started!
+        </p>
+      </div>
+    );
   }
 
   // group by status

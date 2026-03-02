@@ -4,9 +4,28 @@ import type { Todo } from '../src/api/todos';
 import { vi } from 'vitest';
 
 describe('TodoList component', () => {
-  it('renders message when there are no todos', () => {
+  it('renders empty-state with icon and message when there are no todos', () => {
     render(<TodoList todos={[]} onStatusChange={vi.fn()} onDelete={vi.fn()} onEdit={vi.fn()} />);
-    expect(screen.getByText(/no todos yet/i)).toBeInTheDocument();
+    // data-testid container exists
+    const container = screen.getByTestId('empty-state');
+    expect(container).toBeInTheDocument();
+    // emoji icon with role="img" — aria-label must match visible heading text
+    const icon = screen.getByRole('img', { name: /no tasks yet/i });
+    expect(icon).toBeInTheDocument();
+    expect(icon.textContent).toBe('📋');
+    // primary message
+    expect(screen.getByText(/no tasks yet/i)).toBeInTheDocument();
+    // secondary hint
+    expect(screen.getByText(/add one above to get started/i)).toBeInTheDocument();
+    // layout classes — centering and spacing must all be present
+    expect(container).toHaveClass('text-center');
+    expect(container).toHaveClass('flex');
+    expect(container).toHaveClass('flex-col');
+    expect(container).toHaveClass('items-center');
+    expect(container).toHaveClass('justify-center');
+    expect(container).toHaveClass('py-12');
+    expect(container).toHaveClass('mt-8');
+    // no list items rendered
     expect(screen.queryAllByRole('listitem')).toHaveLength(0);
   });
 

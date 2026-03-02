@@ -1,6 +1,6 @@
 # Story 2.8: Display sensible empty-state messaging
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 
@@ -32,29 +32,29 @@ so that the interface doesn't feel broken.
 
 ## Tasks / Subtasks
 
-- [ ] Enhance empty-state in `TodoList` component (AC: 1, 2)
-  - [ ] Replace plain `<p>No todos yet.</p>` with a styled empty-state container
-  - [ ] Add a visual indicator (emoji or simple SVG icon, e.g. clipboard 📋 or ✨)
-  - [ ] Add descriptive text: "No tasks yet — add one above!"
-  - [ ] Center the empty-state content with padding for visual balance
-  - [ ] Use `text-muted-foreground` color class for subtle styling
-- [ ] Verify form visibility in empty state (AC: 3)
-  - [ ] No code changes — `NewTodoForm` is rendered by `page.tsx` independently of `TodoList`
-  - [ ] Verify in tests that input and Add button are present when todo list is empty
-- [ ] Verify transitions into/out of empty state (AC: 4, 5)
-  - [ ] No code changes expected — optimistic updates in `page.tsx` already handle state changes
-  - [ ] When `todos` becomes non-empty, React re-renders `TodoList` which shows items instead of empty state
-  - [ ] When last todo is deleted, `TodoList` receives empty array and shows empty state
-- [ ] Update frontend unit tests (AC: 1, 2, 4, 5)
-  - [ ] `TodoList.test.tsx`: Update existing empty-state test to check for new message text and icon
-  - [ ] `TodoList.test.tsx`: Verify empty-state container has proper styling classes
-  - [ ] `page.test.tsx`: Verify form is visible when no todos exist
-  - [ ] `page.test.tsx`: Verify empty state disappears when first todo is added
-  - [ ] `page.test.tsx`: Verify empty state reappears when last todo is deleted
-- [ ] Add e2e test for empty state (AC: 1, 4, 5)
-  - [ ] Navigate to app with no todos — verify empty-state message visible
-  - [ ] Create a todo — verify message disappears
-  - [ ] Delete all todos — verify message reappears
+- [x] Enhance empty-state in `TodoList` component (AC: 1, 2)
+  - [x] Replace plain `<p>No todos yet.</p>` with a styled empty-state container
+  - [x] Add a visual indicator (emoji or simple SVG icon, e.g. clipboard 📋 or ✨)
+  - [x] Add descriptive text: "No tasks yet — add one above!"
+  - [x] Center the empty-state content with padding for visual balance
+  - [x] Use `text-muted-foreground` color class for subtle styling
+- [x] Verify form visibility in empty state (AC: 3)
+  - [x] No code changes — `NewTodoForm` is rendered by `page.tsx` independently of `TodoList`
+  - [x] Verify in tests that input and Add button are present when todo list is empty
+- [x] Verify transitions into/out of empty state (AC: 4, 5)
+  - [x] No code changes expected — optimistic updates in `page.tsx` already handle state changes
+  - [x] When `todos` becomes non-empty, React re-renders `TodoList` which shows items instead of empty state
+  - [x] When last todo is deleted, `TodoList` receives empty array and shows empty state
+- [x] Update frontend unit tests (AC: 1, 2, 4, 5)
+  - [x] `TodoList.test.tsx`: Update existing empty-state test to check for new message text and icon
+  - [x] `TodoList.test.tsx`: Verify empty-state container has proper styling classes
+  - [x] `page.test.tsx`: Verify form is visible when no todos exist
+  - [x] `page.test.tsx`: Verify empty state disappears when first todo is added
+  - [x] `page.test.tsx`: Verify empty state reappears when last todo is deleted
+- [x] Add e2e test for empty state (AC: 1, 4, 5)
+  - [x] Navigate to app with no todos — verify empty-state message visible
+  - [x] Create a todo — verify message disappears
+  - [x] Delete all todos — verify message reappears
 
 ## Dev Notes
 
@@ -177,10 +177,34 @@ All changes are in existing files.
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.6
 
 ### Debug Log References
 
+None — all tests passed on first run after implementation.
+
 ### Completion Notes List
 
+- Replaced plain `<p>No todos yet.</p>` with styled empty-state container using `data-testid="empty-state"`, 📋 emoji with `role="img"` and `aria-label`, centered layout with `py-12`, and `text-muted-foreground` styling.
+- Updated `TodoList.test.tsx`: replaced existing empty-state test with comprehensive assertions for container, icon, message text, hint text, and styling classes.
+- Added 3 new tests to `page.test.tsx`: (1) empty-state + form visibility (AC 3), (2) empty-state disappears on add (AC 4), (3) empty-state reappears on delete of last todo (AC 5).
+- Added e2e test in `playwright-smoke.test.ts`: deletes all existing todos, verifies empty-state, creates a todo to verify it disappears, deletes it to verify it reappears.
+- No backend changes needed — frontend-only story.
+- All 58 frontend tests pass (9 test files). No regressions.
+
+### Change Log
+
+- 2026-03-02: Implemented Story 2.8 — empty-state messaging with icon, styled container, and full test coverage (unit + e2e).
+- 2026-03-02: Code review fixes applied:
+  - [M1] `e2e/playwright-smoke.test.ts`: replaced `waitForTimeout(300)` with `deleteBtn.waitForElementState('detached')` in delete loop
+  - [M2] `e2e/playwright-smoke.test.ts`: replaced racy `page.$` + `toBeNull` assertion with `waitForSelector(..., { state: 'detached' })`
+  - [L1] `frontend/app/components/TodoList.tsx`: corrected `aria-label` from `"No tasks"` to `"No tasks yet"` to match visible heading text
+  - [L2] `frontend/tests/TodoList.test.tsx`: added layout class assertions for `flex`, `flex-col`, `items-center`, `justify-center`, `py-12`, `mt-8`
+  - [L3] `frontend/tests/page.test.tsx`: added test verifying `empty-state` is not rendered while `Loading...` is visible
+
 ### File List
+
+- frontend/app/components/TodoList.tsx (modified — empty-state rendering, aria-label fix)
+- frontend/tests/TodoList.test.tsx (modified — updated empty-state test, added layout class assertions)
+- frontend/tests/page.test.tsx (modified — added 3 empty-state tests + loading-state guard test)
+- e2e/playwright-smoke.test.ts (modified — added empty-state e2e test, fixed waitForTimeout and race condition)

@@ -377,3 +377,63 @@ test('done items have reduced opacity and removing done status removes it', asyn
 
   await browser.close();
 }, 60000);
+
+// --- Empty-state tests (Story 2.8) ---
+
+test('empty state shows when no todos exist and toggles on add/delete', async () => {
+  expect(composeEnv).not.toBeNull();
+  const port = process.env.FRONTEND_PORT || '3000';
+  const browser = await chromium.launch();
+  const page = await browser.newPage();
+
+  // accept all confirmation dialogs (for delete)
+  page.on('dialog', (dialog) => dialog.accept());
+
+  await page.goto(`http://localhost:${port}`);
+  // wait for page to finish loading
+  await page.waitForSelector('h1:has-text("Todo List")');
+  await page.waitForFunction(
+    () => !document.body.textContent?.includes('Loading...'),
+  );
+
+  // delete all existing todos to get to empty state
+  while (true) {
+    const deleteBtn = await page.$('button[aria-label="Delete todo"]');
+    if (!deleteBtn) break;
+    await deleteBtn.click();
+    // deterministic wait: block until the clicked button is detached from DOM
+    await deleteBtn.waitForElementState('detached');
+  }
+
+  // verify empty-state message is visible
+  const emptyState = await page.waitForSelector('[data-testid="empty-state"]');
+  expect(emptyState).not.toBeNull();
+  const emptyText = await page.textContent('[data-testid="empty-state"]');
+  expect(emptyText).toContain('No tasks yet');
+  expect(emptyText).toContain('Add one above');
+
+  // form should still be usable
+  const input = await page.$('input[placeholder="New todo"]');
+  expect(input).not.toBeNull();
+
+  // create a todo — empty state should disappear
+  await page.fill('input[placeholder="New todo"]', 'empty state test');
+  await page.click('button:has-text("Add")');
+  await page.waitForSelector('text=empty state test');
+
+  // empty state should be gone — wait for it to detach rather than polling
+  await page.waitForSelector('[data-testid="empty-state"]', {
+    state: 'detached',
+  });
+
+  // delete the todo — empty state should reappear
+  const delBtn = await page.waitForSelector(
+    'div.bg-card:has-text("empty state test") button[aria-label="Delete todo"]',
+  );
+  await delBtn.click();
+  await page.waitForSelector('[data-testid="empty-state"]');
+  const reEmptyText = await page.textContent('[data-testid="empty-state"]');
+  expect(reEmptyText).toContain('No tasks yet');
+
+  await browser.close();
+}, 60000);

@@ -285,4 +285,81 @@ describe('Home page data flow', () => {
     errorSpy.mockRestore();
   });
 
+  // --- Empty-state tests (Story 2.8) ---
+
+  it('empty-state is NOT shown while loading is in progress (L3)', async () => {
+    // fetchTodos never resolves — loading state persists indefinitely
+    mockedFetch.mockReturnValue(new Promise<never>(() => { }));
+    render(<Home />);
+    // Loading indicator should be visible
+    expect(screen.getByText('Loading...')).toBeInTheDocument();
+    // empty-state must NOT be visible during loading
+    expect(screen.queryByTestId('empty-state')).not.toBeInTheDocument();
+  });
+
+  it('shows empty-state and form when no todos exist (AC 1, 2, 3)', async () => {
+    mockedFetch.mockResolvedValue([]);
+    render(<Home />);
+    // wait for loading to finish
+    await waitFor(() => {
+      expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+    });
+    // empty-state container visible
+    expect(screen.getByTestId('empty-state')).toBeInTheDocument();
+    expect(screen.getByText(/no tasks yet/i)).toBeInTheDocument();
+    expect(screen.getByText(/add one above/i)).toBeInTheDocument();
+    // form input and button remain visible
+    expect(screen.getByPlaceholderText(/new todo/i)).toBeInTheDocument();
+    expect(screen.getByTestId('new-todo-submit')).toBeInTheDocument();
+  });
+
+  it('empty state disappears when first todo is added (AC 4)', async () => {
+    mockedFetch.mockResolvedValue([]);
+    const created = { id: 1, text: 'first', status: 'todo', createdAt: '', updatedAt: '' };
+    mockedCreate.mockResolvedValue(created);
+
+    render(<Home />);
+    await waitFor(() => {
+      expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+    });
+    // empty state present initially
+    expect(screen.getByTestId('empty-state')).toBeInTheDocument();
+
+    // add a todo
+    const input = screen.getByPlaceholderText(/new todo/i);
+    fireEvent.change(input, { target: { value: 'first' } });
+    fireEvent.click(screen.getByTestId('new-todo-submit'));
+
+    // empty state disappears, todo appears
+    await waitFor(() => {
+      expect(screen.queryByTestId('empty-state')).not.toBeInTheDocument();
+    });
+    expect(screen.getByText('first')).toBeInTheDocument();
+  });
+
+  it('empty state reappears when last todo is deleted (AC 5)', async () => {
+    const todos = [
+      { id: 1, text: 'only', status: 'todo', createdAt: '', updatedAt: '' },
+    ];
+    mockedFetch.mockResolvedValue(todos);
+    mockedDelete.mockResolvedValue(undefined);
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    render(<Home />);
+    expect(await screen.findByText('only')).toBeInTheDocument();
+    // no empty state when there are todos
+    expect(screen.queryByTestId('empty-state')).not.toBeInTheDocument();
+
+    // delete the last todo
+    fireEvent.click(screen.getByLabelText('Delete todo'));
+
+    // empty state reappears
+    await waitFor(() => {
+      expect(screen.getByTestId('empty-state')).toBeInTheDocument();
+    });
+    expect(screen.getByText(/no tasks yet/i)).toBeInTheDocument();
+
+    confirmSpy.mockRestore();
+  });
+
 });
