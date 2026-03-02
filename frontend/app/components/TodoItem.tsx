@@ -77,7 +77,7 @@ export default function TodoItem({ todo, onStatusChange, onDelete, onEdit }: Tod
   };
 
   return (
-    <Card>
+    <Card className={todo.status === 'done' ? 'opacity-60 transition-opacity' : 'transition-opacity'}>
       <CardContent className="flex justify-between items-center">
         {isEditing ? (
           <div className="flex items-center gap-1 flex-1 mr-2">

@@ -40,4 +40,26 @@ describe('TodoList component', () => {
     fireEvent.change(select, { target: { value: 'in_progress' } });
     expect(mock).toHaveBeenCalled();
   });
+
+  // --- Visual distinction tests (Story 2.7) ---
+
+  it('done items have opacity-60 on Card, active items do not', () => {
+    const items: Todo[] = [
+      { id: 1, text: 'active task', status: 'todo', createdAt: '', updatedAt: '' },
+      { id: 2, text: 'progress task', status: 'in_progress', createdAt: '', updatedAt: '' },
+      { id: 3, text: 'done task', status: 'done', createdAt: '', updatedAt: '' },
+    ];
+    render(<TodoList todos={items} onStatusChange={vi.fn()} onDelete={vi.fn()} onEdit={vi.fn()} />);
+
+    // done item card should have opacity-60
+    const doneCard = screen.getByText('done task').closest('[class*="bg-card"]');
+    expect(doneCard).toHaveClass('opacity-60');
+
+    // active items should NOT have opacity-60
+    const activeCard = screen.getByText('active task').closest('[class*="bg-card"]');
+    expect(activeCard).not.toHaveClass('opacity-60');
+
+    const progressCard = screen.getByText('progress task').closest('[class*="bg-card"]');
+    expect(progressCard).not.toHaveClass('opacity-60');
+  });
 });

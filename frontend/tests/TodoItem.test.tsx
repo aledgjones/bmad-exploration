@@ -180,4 +180,29 @@ describe('TodoItem component', () => {
     expect(screen.queryByLabelText('Delete todo')).not.toBeInTheDocument();
   });
 
+  // --- Visual distinction tests (Story 2.7) ---
+
+  it('applies opacity-60 and transition-opacity to Card when status is done', () => {
+    const doneTodo: Todo = { ...baseTodo, status: 'done' };
+    const { container } = render(<TodoItem todo={doneTodo} onStatusChange={vi.fn()} onDelete={vi.fn()} onEdit={vi.fn()} />);
+    const card = container.querySelector('[class*="bg-card"]');
+    expect(card).toHaveClass('opacity-60');
+    expect(card).toHaveClass('transition-opacity');
+  });
+
+  it('does NOT apply opacity-60 to Card when status is todo', () => {
+    const { container } = render(<TodoItem todo={baseTodo} onStatusChange={vi.fn()} onDelete={vi.fn()} onEdit={vi.fn()} />);
+    const card = container.querySelector('[class*="bg-card"]');
+    expect(card).not.toHaveClass('opacity-60');
+    expect(card).toHaveClass('transition-opacity');
+  });
+
+  it('does NOT apply opacity-60 to Card when status is in_progress', () => {
+    const inProgressTodo: Todo = { ...baseTodo, status: 'in_progress' };
+    const { container } = render(<TodoItem todo={inProgressTodo} onStatusChange={vi.fn()} onDelete={vi.fn()} onEdit={vi.fn()} />);
+    const card = container.querySelector('[class*="bg-card"]');
+    expect(card).not.toHaveClass('opacity-60');
+    expect(card).toHaveClass('transition-opacity');
+  });
+
 });

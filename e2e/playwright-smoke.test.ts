@@ -303,3 +303,77 @@ test('user can cancel edit with Escape and text reverts', async () => {
 
   await browser.close();
 }, 60000);
+
+// --- Visual distinction tests (Story 2.7) ---
+
+test('done items have reduced opacity and removing done status removes it', async () => {
+  expect(composeEnv).not.toBeNull();
+  const port = process.env.FRONTEND_PORT || '3000';
+  const browser = await chromium.launch();
+  const page = await browser.newPage();
+  await page.goto(`http://localhost:${port}`);
+
+  // create a todo
+  await page.fill('input[placeholder="New todo"]', 'opacity test');
+  await page.click('button:has-text("Add")');
+  await page.waitForSelector('text=opacity test');
+
+  // verify card does NOT have opacity-60 initially (status is todo)
+  const cardBefore = await page.waitForSelector(
+    'div.bg-card:has-text("opacity test")',
+  );
+  const classBeforeDone = await cardBefore.getAttribute('class');
+  expect(classBeforeDone).not.toContain('opacity-60');
+
+  // change status to done
+  await page.selectOption(
+    'div.bg-card:has-text("opacity test") select[aria-label="Change todo status"]',
+    'done',
+  );
+
+  // wait for opacity-60 to appear on the card (deterministic wait)
+  await page.waitForFunction(() => {
+    const cards = document.querySelectorAll('div.bg-card');
+    for (const card of cards) {
+      if (
+        card.textContent?.includes('opacity test') &&
+        card.className.includes('opacity-60')
+      ) {
+        return true;
+      }
+    }
+    return false;
+  });
+
+  // verify card now has opacity-60
+  const cardAfterDone = await page.$('div.bg-card:has-text("opacity test")');
+  const classAfterDone = await cardAfterDone!.getAttribute('class');
+  expect(classAfterDone).toContain('opacity-60');
+
+  // change back to todo
+  await page.selectOption(
+    'div.bg-card:has-text("opacity test") select[aria-label="Change todo status"]',
+    'todo',
+  );
+
+  // wait for opacity-60 to be removed (deterministic wait)
+  await page.waitForFunction(() => {
+    const cards = document.querySelectorAll('div.bg-card');
+    for (const card of cards) {
+      if (
+        card.textContent?.includes('opacity test') &&
+        !card.className.includes('opacity-60')
+      ) {
+        return true;
+      }
+    }
+    return false;
+  });
+
+  // verify card no longer has opacity-60
+  const cardAfterRevert = await page.$('div.bg-card:has-text("opacity test")');
+  const classAfterRevert = await cardAfterRevert!.getAttribute('class');
+  expect(classAfterRevert).not.toContain('opacity-60');
+
+  await browser.close();
+}, 60000);

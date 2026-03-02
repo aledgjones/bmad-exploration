@@ -55,7 +55,7 @@ development_status:
   2-4-mark-a-todo-item-as-complete: done
   2-5-delete-a-todo-item: done
   2-6-edit-the-text-of-an-existing-todo: done
-  2-7-show-completed-tasks-visually-distinguished-from-active: ready-for-dev
+  2-7-show-completed-tasks-visually-distinguished-from-active: review
   2-8-display-sensible-empty-state-messaging: ready-for-dev
   2-9-show-loading-indicators-during-data-operations: ready-for-dev
   2-10-display-an-error-state-with-retry-options: ready-for-dev
