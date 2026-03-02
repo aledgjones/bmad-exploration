@@ -15,18 +15,22 @@ interface NewTodoFormProps {
 
 export default function NewTodoForm({ onSubmit }: NewTodoFormProps) {
   const [text, setText] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     const trimmed = text.trim();
-    if (!trimmed) return;
+    if (!trimmed || submitting) return;
 
+    setSubmitting(true);
     try {
       await onSubmit(trimmed);
       setText('');
     } catch (err) {
       // keep text so user can retry; error handling should be done by caller
       console.error('NewTodoForm onSubmit failed', err);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -43,8 +47,8 @@ export default function NewTodoForm({ onSubmit }: NewTodoFormProps) {
         onChange={(e) => setText(e.target.value)}
         data-testid="new-todo-input"
       />
-      <Button type="submit" data-testid="new-todo-submit">
-        Add
+      <Button type="submit" data-testid="new-todo-submit" disabled={submitting}>
+        {submitting ? 'Adding...' : 'Add'}
       </Button>
     </form>
   );

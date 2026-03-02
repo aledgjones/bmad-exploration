@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import NewTodoForm from './components/NewTodoForm';
 import TodoList from './components/TodoList';
+import Spinner from './components/Spinner';
 import type { Todo } from '../src/api/todos';
 import { fetchTodos, createTodo, updateTodoStatus, updateTodoText, deleteTodo, type TodoStatus } from '../src/api/todos';
 
@@ -109,13 +110,15 @@ export default function Home() {
       data-testid="page-root"
       className="flex min-h-screen items-center justify-center bg-gray-100 font-sans dark:bg-black"
     >
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-start py-16 px-8 sm:items-start">
+      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-start py-16 px-8 sm:items-start" aria-busy={loading}>
         <div className="flex flex-col items-center w-full space-y-4 mb-12">
           <h1 className="text-2xl font-bold">Todo List</h1>
           <NewTodoForm onSubmit={handleAdd} />
         </div>
         {loading ? (
-          <p className="mt-4">Loading...</p>
+          <div className="mt-8 w-full flex justify-center">
+            <Spinner label="Loading todos" />
+          </div>
         ) : (
           <TodoList todos={todos} onStatusChange={handleStatusChange} onDelete={handleDelete} onEdit={handleEdit} />
         )}

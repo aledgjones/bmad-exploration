@@ -53,6 +53,8 @@ describe('Home page data flow', () => {
         'Unable to load todos. Is the backend running?'
       );
     });
+    // spinner should be removed after fetch failure (L1)
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
     alertSpy.mockRestore();
   });
 
@@ -285,14 +287,54 @@ describe('Home page data flow', () => {
     errorSpy.mockRestore();
   });
 
+  // --- Loading spinner tests (Story 2.9) ---
+
+  it('shows spinner with role="status" during initial fetch', async () => {
+    let resolveLoad!: (v: any[]) => void;
+    mockedFetch.mockReturnValue(new Promise<any[]>((res) => { resolveLoad = res; }));
+    render(<Home />);
+    // before fetch resolves: spinner present
+    expect(screen.getByRole('status')).toBeInTheDocument();
+    expect(screen.getByText('Loading todos...')).toBeInTheDocument();
+    // resolve the fetch
+    resolveLoad([]);
+    await waitFor(() => {
+      expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    });
+  });
+
+  it('sets aria-busy on main during loading and removes it after', async () => {
+    let resolveLoad!: (v: any[]) => void;
+    mockedFetch.mockReturnValue(new Promise<any[]>((res) => { resolveLoad = res; }));
+    render(<Home />);
+    const main = screen.getByRole('main');
+    expect(main).toHaveAttribute('aria-busy', 'true');
+    resolveLoad([]);
+    await waitFor(() => {
+      expect(main).toHaveAttribute('aria-busy', 'false');
+    });
+  });
+
+  it('spinner disappears and list renders once fetch completes', async () => {
+    const fake = [{ id: 1, text: 'ready', status: 'todo', createdAt: '', updatedAt: '' }];
+    mockedFetch.mockResolvedValue(fake);
+    render(<Home />);
+    // spinner goes away and todo is visible
+    await waitFor(() => {
+      expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    });
+    expect(screen.getByText('ready')).toBeInTheDocument();
+  });
+
   // --- Empty-state tests (Story 2.8) ---
 
   it('empty-state is NOT shown while loading is in progress (L3)', async () => {
     // fetchTodos never resolves — loading state persists indefinitely
     mockedFetch.mockReturnValue(new Promise<never>(() => { }));
     render(<Home />);
-    // Loading indicator should be visible
-    expect(screen.getByText('Loading...')).toBeInTheDocument();
+    // Loading spinner should be visible
+    expect(screen.getByRole('status')).toBeInTheDocument();
+    expect(screen.getByText('Loading todos...')).toBeInTheDocument();
     // empty-state must NOT be visible during loading
     expect(screen.queryByTestId('empty-state')).not.toBeInTheDocument();
   });
@@ -302,7 +344,7 @@ describe('Home page data flow', () => {
     render(<Home />);
     // wait for loading to finish
     await waitFor(() => {
-      expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+      expect(screen.queryByRole('status')).not.toBeInTheDocument();
     });
     // empty-state container visible
     expect(screen.getByTestId('empty-state')).toBeInTheDocument();
@@ -320,7 +362,7 @@ describe('Home page data flow', () => {
 
     render(<Home />);
     await waitFor(() => {
-      expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+      expect(screen.queryByRole('status')).not.toBeInTheDocument();
     });
     // empty state present initially
     expect(screen.getByTestId('empty-state')).toBeInTheDocument();

@@ -48,4 +48,69 @@ describe('NewTodoForm component', () => {
     await waitFor(() => expect(handle).toHaveBeenCalledWith('stay'));
     expect(input).toHaveValue('stay');
   });
+
+  // --- Submitting state tests (Story 2.9) ---
+
+  it('disables button and shows "Adding..." text while submitting', async () => {
+    let resolveSubmit!: (v: unknown) => void;
+    const handle = vi.fn().mockReturnValue(new Promise((res) => { resolveSubmit = res; }));
+    render(<NewTodoForm onSubmit={handle} />);
+    const input = screen.getByPlaceholderText(/New todo/i);
+    fireEvent.change(input, { target: { value: 'new todo' } });
+    fireEvent.click(screen.getByRole('button', { name: /Add/i }));
+
+    // while in flight: button shows "Adding..." and is disabled
+    expect(screen.getByRole('button', { name: /Adding/i })).toBeDisabled();
+
+    resolveSubmit(undefined);
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Add/i })).not.toBeDisabled();
+    });
+  });
+
+  it('re-enables button after successful submission', async () => {
+    const handle = vi.fn().mockResolvedValue(undefined);
+    render(<NewTodoForm onSubmit={handle} />);
+    const input = screen.getByPlaceholderText(/New todo/i);
+    fireEvent.change(input, { target: { value: 'ok' } });
+    fireEvent.click(screen.getByRole('button', { name: /Add/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Add/i })).not.toBeDisabled();
+    });
+  });
+
+  it('re-enables button after failed submission', async () => {
+    const handle = vi.fn().mockRejectedValue(new Error('fail'));
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
+    render(<NewTodoForm onSubmit={handle} />);
+    const input = screen.getByPlaceholderText(/New todo/i);
+    fireEvent.change(input, { target: { value: 'bad' } });
+    fireEvent.click(screen.getByRole('button', { name: /Add/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Add/i })).not.toBeDisabled();
+    });
+    errorSpy.mockRestore();
+  });
+
+  it('double-click does not trigger multiple onSubmit calls', async () => {
+    let resolveSubmit!: (v: unknown) => void;
+    const handle = vi.fn().mockReturnValue(new Promise((res) => { resolveSubmit = res; }));
+    render(<NewTodoForm onSubmit={handle} />);
+    const input = screen.getByPlaceholderText(/New todo/i);
+    const button = screen.getByRole('button', { name: /Add/i });
+    fireEvent.change(input, { target: { value: 'once' } });
+
+    // click twice quickly
+    fireEvent.click(button);
+    fireEvent.click(button);
+
+    expect(handle).toHaveBeenCalledTimes(1);
+
+    resolveSubmit(undefined);
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Add/i })).not.toBeDisabled();
+    });
+  });
 });

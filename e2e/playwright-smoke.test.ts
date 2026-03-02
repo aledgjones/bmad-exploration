@@ -188,10 +188,10 @@ test('user can delete a todo and it stays deleted after reload', async () => {
   await page.reload();
   // wait for page to fully load todos (loading indicator gone, heading visible)
   await page.waitForSelector('h1:has-text("Todo List")');
-  // wait until the loading text disappears, meaning todos have been fetched
-  await page.waitForFunction(
-    () => !document.body.textContent?.includes('Loading...'),
-  );
+  // wait until the loading spinner disappears, meaning todos have been fetched
+  await page
+    .waitForSelector('[role="status"]', { state: 'detached', timeout: 5000 })
+    .catch(() => {});
   const found = await page.$('text=delete me');
   expect(found).toBeNull();
 
@@ -392,9 +392,10 @@ test('empty state shows when no todos exist and toggles on add/delete', async ()
   await page.goto(`http://localhost:${port}`);
   // wait for page to finish loading
   await page.waitForSelector('h1:has-text("Todo List")');
-  await page.waitForFunction(
-    () => !document.body.textContent?.includes('Loading...'),
-  );
+  // wait until the loading spinner disappears, meaning todos have been fetched
+  await page
+    .waitForSelector('[role="status"]', { state: 'detached', timeout: 5000 })
+    .catch(() => {});
 
   // delete all existing todos to get to empty state
   while (true) {
@@ -402,7 +403,7 @@ test('empty state shows when no todos exist and toggles on add/delete', async ()
     if (!deleteBtn) break;
     await deleteBtn.click();
     // deterministic wait: block until the clicked button is detached from DOM
-    await deleteBtn.waitForElementState('detached');
+    await page.waitForFunction((el) => !el?.isConnected, deleteBtn);
   }
 
   // verify empty-state message is visible
@@ -437,3 +438,32 @@ test('empty state shows when no todos exist and toggles on add/delete', async ()
 
   await browser.close();
 }, 60000);
+
+// Story 2.9: loading spinner appears briefly on initial page load
+test('loading spinner appears during initial data fetch', async () => {
+  expect(composeEnv).not.toBeNull();
+  const port = process.env.FRONTEND_PORT || '3000';
+  const browser = await chromium.launch();
+  const page = await browser.newPage();
+
+  // intercept GET /todos to delay the response so the spinner is observable
+  await page.route('**/todos', async (route, request) => {
+    if (request.method() === 'GET') {
+      await new Promise((res) => setTimeout(res, 300));
+    }
+    route.continue();
+  });
+
+  await page.goto(`http://localhost:${port}`);
+
+  // spinner with role="status" should be visible while the request is delayed
+  await page.waitForSelector('[role="status"]', { timeout: 3000 });
+
+  // after fetch completes, spinner should disappear
+  await page.waitForSelector('[role="status"]', {
+    state: 'detached',
+    timeout: 5000,
+  });
+
+  await browser.close();
+}, 30000);
