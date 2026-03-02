@@ -55,12 +55,12 @@ development_status:
   2-4-mark-a-todo-item-as-complete: done
   2-5-delete-a-todo-item: done
   2-6-edit-the-text-of-an-existing-todo: done
-  2-7-show-completed-tasks-visually-distinguished-from-active: backlog
-  2-8-display-sensible-empty-state-messaging: backlog
-  2-9-show-loading-indicators-during-data-operations: backlog
-  2-10-display-an-error-state-with-retry-options: backlog
-  2-11-reflect-user-interactions-instantly-without-page-reload: backlog
-  2-12-core-actions-work-without-onboarding-or-help-text: backlog
+  2-7-show-completed-tasks-visually-distinguished-from-active: ready-for-dev
+  2-8-display-sensible-empty-state-messaging: ready-for-dev
+  2-9-show-loading-indicators-during-data-operations: ready-for-dev
+  2-10-display-an-error-state-with-retry-options: ready-for-dev
+  2-11-reflect-user-interactions-instantly-without-page-reload: ready-for-dev
+  2-12-core-actions-work-without-onboarding-or-help-text: ready-for-dev
   epic-2-retrospective: optional
   epic-3: backlog
   3-1-backend-stores-todos-reliably: backlog
