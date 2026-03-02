@@ -197,3 +197,109 @@ test('user can delete a todo and it stays deleted after reload', async () => {
 
   await browser.close();
 }, 60000);
+
+// --- EDIT flow tests ---
+
+test('user can edit a todo text and it persists after reload', async () => {
+  expect(composeEnv).not.toBeNull();
+  const port = process.env.FRONTEND_PORT || '3000';
+  const browser = await chromium.launch();
+  const page = await browser.newPage();
+  await page.goto(`http://localhost:${port}`);
+
+  // create a todo to edit
+  await page.fill('input[placeholder="New todo"]', 'edit me');
+  await page.click('button:has-text("Add")');
+  await page.waitForSelector('text=edit me');
+
+  // click the edit button on the card
+  const editBtn = await page.waitForSelector(
+    'div.bg-card:has-text("edit me") button[aria-label="Edit todo"]',
+  );
+  await editBtn.click();
+
+  // wait for edit input to appear
+  const input = await page.waitForSelector(
+    'input[aria-label="Edit todo text"]',
+  );
+  // clear and type new text
+  await input.fill('edited text');
+  await input.press('Enter');
+
+  // verify updated text displays
+  await page.waitForSelector('text=edited text');
+
+  // reload and verify persisted
+  await page.reload();
+  await page.waitForSelector('text=edited text');
+
+  await browser.close();
+}, 60000);
+
+test('empty text submission is rejected and edit mode remains active', async () => {
+  expect(composeEnv).not.toBeNull();
+  const port = process.env.FRONTEND_PORT || '3000';
+  const browser = await chromium.launch();
+  const page = await browser.newPage();
+  await page.goto(`http://localhost:${port}`);
+
+  await page.fill('input[placeholder="New todo"]', 'empty test');
+  await page.click('button:has-text("Add")');
+  await page.waitForSelector('text=empty test');
+
+  // click edit
+  const editBtn = await page.waitForSelector(
+    'div.bg-card:has-text("empty test") button[aria-label="Edit todo"]',
+  );
+  await editBtn.click();
+
+  // clear the input and press Enter
+  const input = await page.waitForSelector(
+    'input[aria-label="Edit todo text"]',
+  );
+  await input.fill('');
+  await input.press('Enter');
+
+  // edit mode should still be active (input still visible)
+  await page.waitForSelector('input[aria-label="Edit todo text"]');
+
+  // cancel to restore, verify original text
+  await input.press('Escape');
+  await page.waitForSelector('text=empty test');
+
+  await browser.close();
+}, 60000);
+
+test('user can cancel edit with Escape and text reverts', async () => {
+  expect(composeEnv).not.toBeNull();
+  const port = process.env.FRONTEND_PORT || '3000';
+  const browser = await chromium.launch();
+  const page = await browser.newPage();
+  await page.goto(`http://localhost:${port}`);
+
+  // create a todo
+  await page.fill('input[placeholder="New todo"]', 'cancel test');
+  await page.click('button:has-text("Add")');
+  await page.waitForSelector('text=cancel test');
+
+  // click edit
+  const editBtn = await page.waitForSelector(
+    'div.bg-card:has-text("cancel test") button[aria-label="Edit todo"]',
+  );
+  await editBtn.click();
+
+  // modify text then press Escape
+  const input = await page.waitForSelector(
+    'input[aria-label="Edit todo text"]',
+  );
+  await input.fill('should not save');
+  await input.press('Escape');
+
+  // verify original text restored
+  await page.waitForSelector('text=cancel test');
+  // ensure modified text is NOT displayed
+  const modified = await page.$('text=should not save');
+  expect(modified).toBeNull();
+
+  await browser.close();
+}, 60000);

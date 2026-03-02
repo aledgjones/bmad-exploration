@@ -54,7 +54,7 @@ development_status:
   2-3-change-todo-status-among-to-do-in-progress-done: done
   2-4-mark-a-todo-item-as-complete: done
   2-5-delete-a-todo-item: done
-  2-6-edit-the-text-of-an-existing-todo: backlog
+  2-6-edit-the-text-of-an-existing-todo: done
   2-7-show-completed-tasks-visually-distinguished-from-active: backlog
   2-8-display-sensible-empty-state-messaging: backlog
   2-9-show-loading-indicators-during-data-operations: backlog

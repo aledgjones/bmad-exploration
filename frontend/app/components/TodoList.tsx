@@ -7,11 +7,12 @@ interface TodoListProps {
   todos: Todo[];
   onStatusChange: (id: number, status: TodoStatus) => void;
   onDelete: (id: number) => void;
+  onEdit: (id: number, text: string) => void;
 }
 
 const statusOrder: TodoStatus[] = ['todo', 'in_progress', 'done'];
 
-export default function TodoList({ todos, onStatusChange, onDelete }: TodoListProps) {
+export default function TodoList({ todos, onStatusChange, onDelete, onEdit }: TodoListProps) {
   if (todos.length === 0) {
     return <p className="mt-4">No todos yet.</p>;
   }
@@ -50,7 +51,7 @@ export default function TodoList({ todos, onStatusChange, onDelete }: TodoListPr
           <ul role="list" className="mt-2 space-y-2">
             {groups[status].map((t) => (
               <li key={t.id} role="listitem">
-                <TodoItem todo={t} onStatusChange={onStatusChange} onDelete={onDelete} />
+                <TodoItem todo={t} onStatusChange={onStatusChange} onDelete={onDelete} onEdit={onEdit} />
               </li>
             ))}
           </ul>

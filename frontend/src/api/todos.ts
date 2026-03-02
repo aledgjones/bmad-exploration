@@ -84,3 +84,24 @@ export async function deleteTodo(id: number): Promise<void> {
     throw new Error(msg);
   }
 }
+
+export async function updateTodoText(id: number, text: string): Promise<Todo> {
+  const res = await fetch(`/todos/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text }),
+  });
+  if (!res.ok) {
+    let msg = `failed to update text: ${res.status}`;
+    try {
+      const data = await res.json();
+      if (data && typeof data.error === 'string') {
+        msg += ` ${data.error}`;
+      }
+    } catch {
+      // ignore
+    }
+    throw new Error(msg);
+  }
+  return res.json();
+}

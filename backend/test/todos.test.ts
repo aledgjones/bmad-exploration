@@ -327,6 +327,120 @@ test('PATCH /todos/:id rejects non-numeric id', async () => {
   await server.close();
 });
 
+// --- PATCH text update tests ---
+
+test('PATCH /todos/:id updates text when valid', async () => {
+  const server = Fastify();
+  await server.register(app, options);
+  await server.ready();
+
+  const created = await prisma.todo.create({
+    data: { text: 'original', status: 'todo' },
+  });
+
+  const response = await server.inject({
+    method: 'PATCH',
+    url: `/todos/${created.id}`,
+    payload: { text: 'updated text' },
+  });
+
+  expect(response.statusCode).toBe(200);
+  const body = response.json();
+  expect(body.text).toBe('updated text');
+  expect(body.id).toBe(created.id);
+
+  const fromDb = await prisma.todo.findUnique({ where: { id: created.id } });
+  expect(fromDb?.text).toBe('updated text');
+
+  await server.close();
+});
+
+test('PATCH /todos/:id updates both text and status', async () => {
+  const server = Fastify();
+  await server.register(app, options);
+  await server.ready();
+
+  const created = await prisma.todo.create({
+    data: { text: 'both', status: 'todo' },
+  });
+
+  const response = await server.inject({
+    method: 'PATCH',
+    url: `/todos/${created.id}`,
+    payload: { text: 'both updated', status: 'done' },
+  });
+
+  expect(response.statusCode).toBe(200);
+  const body = response.json();
+  expect(body.text).toBe('both updated');
+  expect(body.status).toBe('done');
+  expect(body.completedAt).toBeTruthy();
+
+  await server.close();
+});
+
+test('PATCH /todos/:id rejects empty text', async () => {
+  const server = Fastify();
+  await server.register(app, options);
+  await server.ready();
+
+  const created = await prisma.todo.create({
+    data: { text: 'keep', status: 'todo' },
+  });
+
+  const response = await server.inject({
+    method: 'PATCH',
+    url: `/todos/${created.id}`,
+    payload: { text: '' },
+  });
+
+  // minLength:1 in schema means Fastify rejects before handler
+  expect(response.statusCode).toBe(400);
+
+  await server.close();
+});
+
+test('PATCH /todos/:id rejects whitespace-only text', async () => {
+  const server = Fastify();
+  await server.register(app, options);
+  await server.ready();
+
+  const created = await prisma.todo.create({
+    data: { text: 'keep', status: 'todo' },
+  });
+
+  const response = await server.inject({
+    method: 'PATCH',
+    url: `/todos/${created.id}`,
+    payload: { text: '   ' },
+  });
+
+  expect(response.statusCode).toBe(400);
+  expect(response.json()).toEqual({ error: 'text must be a non-empty string' });
+
+  await server.close();
+});
+
+test('PATCH /todos/:id rejects body with neither text nor status', async () => {
+  const server = Fastify();
+  await server.register(app, options);
+  await server.ready();
+
+  const created = await prisma.todo.create({
+    data: { text: 'keep', status: 'todo' },
+  });
+
+  const response = await server.inject({
+    method: 'PATCH',
+    url: `/todos/${created.id}`,
+    payload: {},
+  });
+
+  expect(response.statusCode).toBe(400);
+
+  await server.close();
+});
+
 // --- DELETE endpoint tests ---
 
 test('DELETE /todos/:id returns 204 on success', async () => {
@@ -457,6 +571,21 @@ test('direct handler invocation exercises trim, create/get and patch error paths
   const req4: any = { params: { id: 1 }, body: { status: 'done' } };
   const result4 = await handlers.patch(req4, reply4);
   expect(reply4.send).toHaveBeenCalledWith({ error: 'todo not found' });
+
+  // PATCH handler: text-only update
+  fakeFastify.prisma.todo.update = async (p: any) => ({ id: 1, ...p.data });
+  const reply4b: any = { code: vi.fn().mockReturnThis(), send: vi.fn() };
+  const req4b: any = { params: { id: 1 }, body: { text: 'new text' } };
+  const result4b = await handlers.patch(req4b, reply4b);
+  expect(result4b).toEqual({ id: 1, text: 'new text' });
+
+  // PATCH handler: whitespace-only text rejected
+  const reply4c: any = { code: vi.fn().mockReturnThis(), send: vi.fn() };
+  const req4c: any = { params: { id: 1 }, body: { text: '   ' } };
+  await handlers.patch(req4c, reply4c);
+  expect(reply4c.send).toHaveBeenCalledWith({
+    error: 'text must be a non-empty string',
+  });
 
   // DELETE handler: success path
   fakeFastify.prisma.todo.delete = async () => ({});

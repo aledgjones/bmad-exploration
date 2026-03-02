@@ -7,19 +7,21 @@ import {
 } from '@testing-library/react';
 import { vi, type Mock } from 'vitest';
 import Home from '../app/page';
-import { fetchTodos, createTodo, updateTodoStatus, deleteTodo } from '../src/api/todos';
+import { fetchTodos, createTodo, updateTodoStatus, updateTodoText, deleteTodo } from '../src/api/todos';
 
 // create manual mocks for the api module
 vi.mock('../src/api/todos', () => ({
   fetchTodos: vi.fn(),
   createTodo: vi.fn(),
   updateTodoStatus: vi.fn(),
+  updateTodoText: vi.fn(),
   deleteTodo: vi.fn(),
 }));
 
 const mockedFetch = fetchTodos as unknown as Mock;
 const mockedCreate = createTodo as unknown as Mock;
 const mockedUpdate = updateTodoStatus as unknown as Mock;
+const mockedUpdateText = updateTodoText as unknown as Mock;
 const mockedDelete = deleteTodo as unknown as Mock;
 
 describe('Home page data flow', () => {
@@ -234,6 +236,53 @@ describe('Home page data flow', () => {
     expect(mockedDelete).not.toHaveBeenCalled();
 
     confirmSpy.mockRestore();
+  });
+
+  it('optimistically updates text on edit and reconciles on success', async () => {
+    const todo = { id: 1, text: 'original', status: 'todo', createdAt: '', updatedAt: '' };
+    mockedFetch.mockResolvedValue([todo]);
+    mockedUpdateText.mockResolvedValue({ ...todo, text: 'edited', updatedAt: '2026-03-01' });
+
+    render(<Home />);
+    expect(await screen.findByText('original')).toBeInTheDocument();
+
+    // click edit button, change text, save
+    fireEvent.click(screen.getByLabelText('Edit todo'));
+    const input = screen.getByLabelText('Edit todo text');
+    fireEvent.change(input, { target: { value: 'edited' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    // optimistic — text updated immediately
+    expect(screen.getByText('edited')).toBeInTheDocument();
+    expect(mockedUpdateText).toHaveBeenCalledWith(1, 'edited');
+  });
+
+  it('rolls back text on edit failure and shows alert', async () => {
+    const todo = { id: 1, text: 'original', status: 'todo', createdAt: '', updatedAt: '' };
+    mockedFetch.mockResolvedValue([todo]);
+    mockedUpdateText.mockRejectedValue(new Error('fail'));
+    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => { });
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
+
+    render(<Home />);
+    expect(await screen.findByText('original')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText('Edit todo'));
+    const input = screen.getByLabelText('Edit todo text');
+    fireEvent.change(input, { target: { value: 'bad edit' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    // optimistic update shows new text
+    expect(screen.getByText('bad edit')).toBeInTheDocument();
+
+    // after failure, text reverts and alert shown
+    await waitFor(() => {
+      expect(screen.getByText('original')).toBeInTheDocument();
+    });
+    expect(alertSpy).toHaveBeenCalledWith('Unable to update todo');
+
+    alertSpy.mockRestore();
+    errorSpy.mockRestore();
   });
 
 });

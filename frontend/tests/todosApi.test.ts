@@ -1,5 +1,5 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { updateTodoStatus, deleteTodo } from '../src/api/todos';
+import { updateTodoStatus, deleteTodo, updateTodoText } from '../src/api/todos';
 
 describe('todos API client', () => {
   beforeEach(() => {
@@ -87,6 +87,64 @@ describe('todos API client', () => {
         },
       });
       await expect(deleteTodo(1)).rejects.toThrow(/failed to delete todo: 500/);
+    });
+  });
+
+  describe('updateTodoText', () => {
+    it('sends PATCH request with text payload', async () => {
+      // @ts-ignore
+      global.fetch.mockResolvedValue({
+        ok: true,
+        json: () => ({
+          id: 3,
+          text: 'updated',
+          status: 'todo',
+          createdAt: '',
+          updatedAt: '',
+        }),
+      });
+      const result = await updateTodoText(3, 'updated');
+      expect(global.fetch).toHaveBeenCalledWith(
+        '/todos/3',
+        expect.objectContaining({
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: 'updated' }),
+        })
+      );
+      expect(result).toEqual({
+        id: 3,
+        text: 'updated',
+        status: 'todo',
+        createdAt: '',
+        updatedAt: '',
+      });
+    });
+
+    it('throws error when server responds with non-ok', async () => {
+      // @ts-ignore
+      global.fetch.mockResolvedValue({
+        ok: false,
+        status: 400,
+        json: () => ({ error: 'text must be a non-empty string' }),
+      });
+      await expect(updateTodoText(1, '')).rejects.toThrow(
+        /failed to update text: 400 text must be a non-empty string/
+      );
+    });
+
+    it('throws generic error when json parse fails', async () => {
+      // @ts-ignore
+      global.fetch.mockResolvedValue({
+        ok: false,
+        status: 500,
+        json: () => {
+          throw new Error('bad json');
+        },
+      });
+      await expect(updateTodoText(1, 'x')).rejects.toThrow(
+        /failed to update text: 500/
+      );
     });
   });
 });

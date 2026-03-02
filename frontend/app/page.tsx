@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import NewTodoForm from './components/NewTodoForm';
 import TodoList from './components/TodoList';
 import type { Todo } from '../src/api/todos';
-import { fetchTodos, createTodo, updateTodoStatus, deleteTodo, TodoStatus } from '../src/api/todos';
+import { fetchTodos, createTodo, updateTodoStatus, updateTodoText, deleteTodo, type TodoStatus } from '../src/api/todos';
 
 export default function Home() {
   const [todos, setTodos] = useState<Todo[]>([]);
@@ -77,6 +77,33 @@ export default function Home() {
     }
   };
 
+  const handleEdit = async (id: number, text: string) => {
+    let previousText: string | undefined;
+    setTodos((prev) =>
+      prev.map((t) => {
+        if (t.id === id) {
+          previousText = t.text;
+          return { ...t, text };
+        }
+        return t;
+      }),
+    );
+    try {
+      const updated = await updateTodoText(id, text);
+      setTodos((prev) =>
+        prev.map((t) => (t.id === id ? { ...t, ...updated } : t)),
+      );
+    } catch (err: any) {
+      console.error('edit failed', err);
+      alert('Unable to update todo');
+      if (previousText !== undefined) {
+        setTodos((prev) =>
+          prev.map((t) => (t.id === id ? { ...t, text: previousText! } : t)),
+        );
+      }
+    }
+  };
+
   return (
     <div
       data-testid="page-root"
@@ -90,7 +117,7 @@ export default function Home() {
         {loading ? (
           <p className="mt-4">Loading...</p>
         ) : (
-          <TodoList todos={todos} onStatusChange={handleStatusChange} onDelete={handleDelete} />
+          <TodoList todos={todos} onStatusChange={handleStatusChange} onDelete={handleDelete} onEdit={handleEdit} />
         )}
       </main>
     </div>

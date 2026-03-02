@@ -44,7 +44,7 @@ const todos: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
     return list;
   });
 
-  // PATCH status update
+  // PATCH status and/or text update
   fastify.patch(
     '/todos/:id',
     {
@@ -57,13 +57,14 @@ const todos: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
         },
         body: {
           type: 'object',
-          required: ['status'],
           properties: {
             status: {
               type: 'string',
               enum: ['todo', 'in_progress', 'done'],
             },
+            text: { type: 'string', minLength: 1 },
           },
+          anyOf: [{ required: ['status'] }, { required: ['text'] }],
         },
       },
     },
@@ -73,23 +74,36 @@ const todos: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
       }
       const {
         params: { id },
-        body: { status },
+        body: { status, text },
       } = request as any;
       // ensure id is numeric even if coercion is disabled
       const idNum = Number(id);
       if (Number.isNaN(idNum)) {
         return reply.code(400).send({ error: 'invalid id' });
       }
-      fastify.log.info(`PATCH /todos/${idNum} status=${status}`);
-      try {
-        // when marking done, record completion timestamp
-        const updateData: any = { status };
+      const updateData: any = {};
+      if (status !== undefined) {
+        updateData.status = status;
         if (status === 'done') {
           updateData.completedAt = new Date();
         } else {
           // clear timestamp when moving out of done
           updateData.completedAt = null;
         }
+      }
+      if (text !== undefined) {
+        const trimmed = text.trim();
+        if (!trimmed) {
+          return reply
+            .code(400)
+            .send({ error: 'text must be a non-empty string' });
+        }
+        updateData.text = trimmed;
+      }
+      fastify.log.info(
+        `PATCH /todos/${idNum} ${Object.keys(updateData).join(',')}`,
+      );
+      try {
         const todo = await fastify.prisma.todo.update({
           where: { id: idNum },
           data: updateData,
