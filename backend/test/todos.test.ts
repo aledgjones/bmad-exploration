@@ -1005,3 +1005,173 @@ test('[Story 4.2 AC5] PATCH from done back to todo clears completedAt to null', 
   const found = list.find((t: any) => t.id === created.id);
   expect(found?.completedAt).toBeNull();
 });
+
+// ─── Story 4.3: Support state updates via single PATCH endpoint ───────────────
+
+// AC 1: todo → in_progress — response reflects new status
+test('[Story 4.3 AC1] PATCH /todos/:id todo→in_progress reflects updated status in response', async () => {
+  const created = await prisma.todo.create({
+    data: { text: '4.3-ac1', status: 'todo' },
+  });
+  const res = await server.inject({
+    method: 'PATCH',
+    url: `/todos/${created.id}`,
+    payload: { status: 'in_progress' },
+  });
+  expect(res.statusCode).toBe(200);
+  const body = res.json();
+  expect(body.status).toBe('in_progress');
+  expect(body.completedAt).toBeNull();
+});
+
+// AC 2: todo → done — completedAt set to non-null timestamp
+test('[Story 4.3 AC2] PATCH /todos/:id todo→done sets completedAt to non-null ISO timestamp', async () => {
+  const created = await prisma.todo.create({
+    data: { text: '4.3-ac2', status: 'todo' },
+  });
+  const res = await server.inject({
+    method: 'PATCH',
+    url: `/todos/${created.id}`,
+    payload: { status: 'done' },
+  });
+  expect(res.statusCode).toBe(200);
+  const body = res.json();
+  expect(body.status).toBe('done');
+  expect(body.completedAt).not.toBeNull();
+  expect(new Date(body.completedAt).toISOString()).toBe(body.completedAt);
+});
+
+// AC 3: done → todo — completedAt cleared to null
+test('[Story 4.3 AC3] PATCH /todos/:id done→todo clears completedAt to null', async () => {
+  const created = await prisma.todo.create({
+    data: { text: '4.3-ac3', status: 'done', completedAt: new Date() },
+  });
+  const res = await server.inject({
+    method: 'PATCH',
+    url: `/todos/${created.id}`,
+    payload: { status: 'todo' },
+  });
+  expect(res.statusCode).toBe(200);
+  const body = res.json();
+  expect(body.status).toBe('todo');
+  expect(body.completedAt).toBeNull();
+});
+
+// AC 4: invalid status value → 400
+test('[Story 4.3 AC4] PATCH /todos/:id rejects status value outside enum with 400', async () => {
+  const created = await prisma.todo.create({
+    data: { text: '4.3-ac4', status: 'todo' },
+  });
+  const res = await server.inject({
+    method: 'PATCH',
+    url: `/todos/${created.id}`,
+    payload: { status: 'waiting' },
+  });
+  expect(res.statusCode).toBe(400);
+});
+
+// AC 5: non-existent id → 404 with error body
+test('[Story 4.3 AC5] PATCH /todos/:id returns 404 with error for non-existent id', async () => {
+  const res = await server.inject({
+    method: 'PATCH',
+    url: '/todos/88888888',
+    payload: { status: 'in_progress' },
+  });
+  expect(res.statusCode).toBe(404);
+  expect(res.json()).toEqual({ error: 'todo not found' });
+});
+
+// AC 6: empty body → 400
+test('[Story 4.3 AC6] PATCH /todos/:id rejects empty body {} with 400', async () => {
+  const created = await prisma.todo.create({
+    data: { text: '4.3-ac6', status: 'todo' },
+  });
+  const res = await server.inject({
+    method: 'PATCH',
+    url: `/todos/${created.id}`,
+    payload: {},
+  });
+  expect(res.statusCode).toBe(400);
+});
+
+// AC 7: combined text + status patched atomically in one DB write
+test('[Story 4.3 AC7] PATCH /todos/:id updates both text and status atomically', async () => {
+  const created = await prisma.todo.create({
+    data: { text: '4.3-ac7-original', status: 'todo' },
+  });
+  const res = await server.inject({
+    method: 'PATCH',
+    url: `/todos/${created.id}`,
+    payload: { text: '4.3-ac7-updated', status: 'in_progress' },
+  });
+  expect(res.statusCode).toBe(200);
+  const body = res.json();
+  expect(body.text).toBe('4.3-ac7-updated');
+  expect(body.status).toBe('in_progress');
+  expect(body.completedAt).toBeNull();
+
+  const fromDb = await prisma.todo.findUnique({ where: { id: created.id } });
+  expect(fromDb?.text).toBe('4.3-ac7-updated');
+  expect(fromDb?.status).toBe('in_progress');
+});
+
+// Full state-machine cycle: todo → in_progress → done → todo
+test('[Story 4.3] full state-machine cycle todo→in_progress→done→todo with completedAt lifecycle', async () => {
+  const created = await prisma.todo.create({
+    data: { text: '4.3-cycle', status: 'todo' },
+  });
+  const id = created.id;
+
+  // Step 1: todo → in_progress
+  const r1 = await server.inject({
+    method: 'PATCH',
+    url: `/todos/${id}`,
+    payload: { status: 'in_progress' },
+  });
+  expect(r1.statusCode).toBe(200);
+  expect(r1.json().status).toBe('in_progress');
+  expect(r1.json().completedAt).toBeNull();
+
+  // Step 2: in_progress → done (completedAt set)
+  const r2 = await server.inject({
+    method: 'PATCH',
+    url: `/todos/${id}`,
+    payload: { status: 'done' },
+  });
+  expect(r2.statusCode).toBe(200);
+  expect(r2.json().status).toBe('done');
+  expect(r2.json().completedAt).not.toBeNull();
+
+  // Step 3: done → todo (completedAt cleared)
+  const r3 = await server.inject({
+    method: 'PATCH',
+    url: `/todos/${id}`,
+    payload: { status: 'todo' },
+  });
+  expect(r3.statusCode).toBe(200);
+  expect(r3.json().status).toBe('todo');
+  expect(r3.json().completedAt).toBeNull();
+});
+
+// completedAt clears when transitioning done → in_progress (not just done → todo)
+test('[Story 4.3] PATCH done→in_progress clears completedAt', async () => {
+  const created = await prisma.todo.create({
+    data: {
+      text: '4.3-done-to-inprogress',
+      status: 'done',
+      completedAt: new Date(),
+    },
+  });
+  const res = await server.inject({
+    method: 'PATCH',
+    url: `/todos/${created.id}`,
+    payload: { status: 'in_progress' },
+  });
+  expect(res.statusCode).toBe(200);
+  const body = res.json();
+  expect(body.status).toBe('in_progress');
+  expect(body.completedAt).toBeNull();
+
+  const fromDb = await prisma.todo.findUnique({ where: { id: created.id } });
+  expect(fromDb?.completedAt).toBeNull();
+});

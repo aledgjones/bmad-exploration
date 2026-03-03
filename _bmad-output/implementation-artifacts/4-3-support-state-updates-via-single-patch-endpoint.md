@@ -1,6 +1,6 @@
 # Story 4.3: Support state updates via single PATCH endpoint
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -40,18 +40,18 @@ So that state transitions are simple.
 
 ## Tasks / Subtasks
 
-- [ ] Verify valid status transitions: `todo → in_progress`, `in_progress → done`, `done → todo` (AC: 1, 2, 3)
-  - [ ] Confirm response body matches new status
-  - [ ] Confirm `completedAt` lifecycle: null → set → null
-- [ ] Verify invalid status rejected with 400 (AC: 4)
-- [ ] Verify 404 for non-existent id (AC: 5)
-- [ ] Verify 400 for empty PATCH body `{}` (AC: 6)
-- [ ] Verify combined text + status PATCH works atomically (AC: 7)
-- [ ] Add Vitest integration tests in `backend/test/todos.test.ts` labelled Story 4.3
-  - [ ] All valid status transition combinations
-  - [ ] `completedAt` null/set/cleared cycle
-  - [ ] Combined text+status patch
-- [ ] Maintain 90% coverage threshold
+- [x] Verify valid status transitions: `todo → in_progress`, `in_progress → done`, `done → todo` (AC: 1, 2, 3)
+  - [x] Confirm response body matches new status
+  - [x] Confirm `completedAt` lifecycle: null → set → null
+- [x] Verify invalid status rejected with 400 (AC: 4)
+- [x] Verify 404 for non-existent id (AC: 5)
+- [x] Verify 400 for empty PATCH body `{}` (AC: 6)
+- [x] Verify combined text + status PATCH works atomically (AC: 7)
+- [x] Add Vitest integration tests in `backend/test/todos.test.ts` labelled Story 4.3
+  - [x] All valid status transition combinations
+  - [x] `completedAt` null/set/cleared cycle
+  - [x] Combined text+status patch
+- [x] Maintain 90% coverage threshold
 
 ## Dev Notes
 
@@ -143,6 +143,12 @@ All transitions are permitted — there are no enforced state-machine guards bey
 - Existing PATCH tests: [backend/test/todos.test.ts](backend/test/todos.test.ts)
 - Epic definition: [\_bmad-output/planning-artifacts/epics.md](_bmad-output/planning-artifacts/epics.md#L366) §Epic 4 / Story 4.3
 
+## Change Log
+
+| Date       | Change                                                                                                                        | Author             |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| 2026-03-03 | Added 9 Story 4.3 Vitest integration tests covering all ACs; full state-machine cycle; done→in_progress completedAt clear gap | Amelia (Dev Agent) |
+
 ## Dev Agent Record
 
 ### Agent Model Used
@@ -151,6 +157,23 @@ Claude Sonnet 4.6
 
 ### Debug Log References
 
+_None — clean implementation, no debugging needed._
+
 ### Completion Notes List
 
+- Confirmed `PATCH /todos/:id` route in `backend/src/routes/todos.ts` is fully implemented; no route changes required.
+- Appended 9 Story 4.3-labelled Vitest integration tests to `backend/test/todos.test.ts`:
+  - `[Story 4.3 AC1]` todo→in_progress reflects status in response
+  - `[Story 4.3 AC2]` todo→done sets completedAt to non-null ISO timestamp
+  - `[Story 4.3 AC3]` done→todo clears completedAt to null
+  - `[Story 4.3 AC4]` invalid status enum value returns 400
+  - `[Story 4.3 AC5]` non-existent id returns 404 with `{ error: 'todo not found' }`
+  - `[Story 4.3 AC6]` empty body `{}` returns 400
+  - `[Story 4.3 AC7]` combined text+status patch is atomic and reflects both fields
+  - `[Story 4.3]` full state-machine cycle: todo→in_progress→done→todo with completedAt lifecycle
+  - `[Story 4.3]` done→in_progress clears completedAt (gap noted in Dev Notes)
+- All 58 tests pass (0 failures, 0 regressions); combined frontend+backend coverage = 93.07% (threshold 90% ✅).
+
 ### File List
+
+- `backend/test/todos.test.ts` — appended 9 Story 4.3 integration tests

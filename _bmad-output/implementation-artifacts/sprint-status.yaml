@@ -69,6 +69,6 @@ development_status:
   epic-4: in-progress
   4-1-provide-crud-endpoints-for-todos: review
   4-2-include-metadata-in-api-responses: review
-  4-3-support-state-updates-via-single-patch-endpoint: ready-for-dev
+  4-3-support-state-updates-via-single-patch-endpoint: review
   4-4-ensure-data-consistency-under-concurrent-requests: ready-for-dev
   epic-4-retrospective: optional
