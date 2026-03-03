@@ -205,4 +205,19 @@ describe('TodoItem component', () => {
     expect(card).toHaveClass('transition-opacity');
   });
 
+  // --- Story 2.12: Title tooltip tests ---
+
+  it('icon buttons have title attributes for hover discoverability', () => {
+    render(<TodoItem todo={baseTodo} onStatusChange={vi.fn()} onDelete={vi.fn()} onEdit={vi.fn()} />);
+    expect(screen.getByLabelText('Edit todo')).toHaveAttribute('title', 'Edit');
+    expect(screen.getByLabelText('Delete todo')).toHaveAttribute('title', 'Delete');
+  });
+
+  it('edit mode buttons have title attributes', () => {
+    render(<TodoItem todo={baseTodo} onStatusChange={vi.fn()} onDelete={vi.fn()} onEdit={vi.fn()} />);
+    fireEvent.click(screen.getByLabelText('Edit todo'));
+    expect(screen.getByLabelText('Save edit')).toHaveAttribute('title', 'Save');
+    expect(screen.getByLabelText('Cancel edit')).toHaveAttribute('title', 'Cancel');
+  });
+
 });

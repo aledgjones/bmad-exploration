@@ -435,4 +435,126 @@ describe('Home page data flow', () => {
     confirmSpy.mockRestore();
   });
 
+  // --- Story 2.11: Optimistic update verification tests ---
+
+  it('todo appears after createTodo resolves (create intentionally awaits server-assigned id)', async () => {
+    mockedFetch.mockResolvedValue([]);
+    let resolveCreate!: (value: any) => void;
+    mockedCreate.mockReturnValue(new Promise((r) => { resolveCreate = r; }));
+
+    render(<Home />);
+    await screen.findByTestId('page-root');
+
+    const input = screen.getByPlaceholderText(/New todo/i);
+    fireEvent.change(input, { target: { value: 'instant' } });
+    fireEvent.click(screen.getByTestId('new-todo-submit'));
+
+    // todo not yet visible — handleAdd awaits createTodo before updating state (server assigns id)
+    expect(screen.queryByText('instant')).not.toBeInTheDocument();
+
+    // once resolved the todo appears
+    resolveCreate({ id: 99, text: 'instant', status: 'todo', createdAt: '', updatedAt: '' });
+    expect(await screen.findByText('instant')).toBeInTheDocument();
+  });
+
+  it('status change reflects BEFORE updateTodoStatus resolves', async () => {
+    const todo = { id: 1, text: 'test', status: 'todo', createdAt: '', updatedAt: '' };
+    mockedFetch.mockResolvedValue([todo]);
+    let resolveUpdate!: (value: any) => void;
+    mockedUpdate.mockReturnValue(new Promise((r) => { resolveUpdate = r; }));
+
+    render(<Home />);
+    await screen.findByText('test');
+
+    const select = screen.getByLabelText(/change todo status/i);
+    fireEvent.change(select, { target: { value: 'done' } });
+
+    // UI updates IMMEDIATELY — API has NOT resolved yet
+    expect((select as HTMLSelectElement).value).toBe('done');
+
+    // cleanup: resolve to avoid dangling state update
+    resolveUpdate({ id: 1, text: 'test', status: 'done', createdAt: '', updatedAt: '2026-03-03', completedAt: '2026-03-03' });
+    await waitFor(() => expect(mockedUpdate).toHaveBeenCalledTimes(1));
+  });
+
+  it('text edit reflects BEFORE updateTodoText resolves', async () => {
+    const todo = { id: 1, text: 'original', status: 'todo', createdAt: '', updatedAt: '' };
+    mockedFetch.mockResolvedValue([todo]);
+    let resolveText!: (value: any) => void;
+    mockedUpdateText.mockReturnValue(new Promise((r) => { resolveText = r; }));
+
+    render(<Home />);
+    await screen.findByText('original');
+
+    fireEvent.click(screen.getByLabelText('Edit todo'));
+    const input = screen.getByLabelText('Edit todo text');
+    fireEvent.change(input, { target: { value: 'updated text' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    // UI updates IMMEDIATELY — API has NOT resolved yet
+    expect(screen.getByText('updated text')).toBeInTheDocument();
+
+    // cleanup: resolve to avoid dangling state update
+    resolveText({ id: 1, text: 'updated text', status: 'todo', createdAt: '', updatedAt: '2026-03-03' });
+    await waitFor(() => expect(mockedUpdateText).toHaveBeenCalledTimes(1));
+  });
+
+  it('todo disappears BEFORE deleteTodo resolves', async () => {
+    const todos = [{ id: 1, text: 'to-delete', status: 'todo', createdAt: '', updatedAt: '' }];
+    mockedFetch.mockResolvedValue(todos);
+    let resolveDelete!: (value: any) => void;
+    mockedDelete.mockReturnValue(new Promise((r) => { resolveDelete = r; }));
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    render(<Home />);
+    await screen.findByText('to-delete');
+
+    fireEvent.click(screen.getByLabelText('Delete todo'));
+
+    // UI removes IMMEDIATELY — API has NOT resolved yet
+    expect(screen.queryByText('to-delete')).not.toBeInTheDocument();
+
+    // cleanup
+    resolveDelete(undefined);
+    await waitFor(() => expect(mockedDelete).toHaveBeenCalledTimes(1));
+    confirmSpy.mockRestore();
+  });
+
+  it('reconciles server response timestamps after status update success', async () => {
+    const todo = { id: 1, text: 'hi', status: 'todo', createdAt: '2026-01-01', updatedAt: '2026-01-01' };
+    mockedFetch.mockResolvedValue([todo]);
+    const serverResponse = {
+      ...todo,
+      status: 'done',
+      completedAt: '2026-03-03T12:00:00Z',
+      updatedAt: '2026-03-03T12:00:00Z',
+    };
+    mockedUpdate.mockResolvedValue(serverResponse);
+
+    render(<Home />);
+    await screen.findByText('hi');
+
+    fireEvent.change(screen.getByLabelText(/change todo status/i), {
+      target: { value: 'done' },
+    });
+
+    // wait for API call and reconciliation to complete
+    await waitFor(() => {
+      expect(mockedUpdate).toHaveBeenCalledWith(1, 'done');
+    });
+    // status remains 'done' after server reconciliation
+    expect(screen.getByLabelText(/change todo status/i)).toHaveValue('done');
+  });
+
+  // --- Story 2.12: No onboarding test ---
+
+  it('does not render onboarding or help text (AC 5)', async () => {
+    mockedFetch.mockResolvedValue([]);
+    render(<Home />);
+    await waitFor(() => expect(mockedFetch).toHaveBeenCalled());
+    expect(
+      screen.queryByText(/help|tutorial|onboarding|how to|getting started/i),
+    ).not.toBeInTheDocument();
+  });
+
 });

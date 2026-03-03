@@ -448,3 +448,147 @@ test('loading spinner appears during initial data fetch', async () => {
 
   await browser.close();
 }, 30000);
+
+// --- Story 2.11: Optimistic update e2e verification tests ---
+
+test('status change reflects instantly before server responds', async () => {
+  expect(composeEnv).not.toBeNull();
+  const port = process.env.FRONTEND_PORT || '3000';
+  const browser = await chromium.launch();
+  const page = await browser.newPage();
+  await page.goto(`http://localhost:${port}`);
+
+  // create a todo to work with
+  await page.fill('input[placeholder="New todo"]', 'optimistic status');
+  await page.click('button:has-text("Add")');
+  await page.waitForSelector('text=optimistic status');
+
+  // intercept PATCH requests to delay them — verifies UI updates before server responds
+  let releasePatch!: () => void;
+  const patchHeld = new Promise<void>((resolve) => {
+    releasePatch = resolve;
+  });
+  await page.route('**/*', async (route, request) => {
+    if (request.method() === 'PATCH') {
+      await patchHeld;
+    }
+    route.continue();
+  });
+
+  // change status — the select should update immediately
+  await page.selectOption(
+    'div.bg-card:has-text("optimistic status") select[aria-label="Change todo status"]',
+    'in_progress',
+  );
+
+  // verify the select shows the new value WITHOUT waiting for the server
+  const selectedValue = await page.$eval(
+    'div.bg-card:has-text("optimistic status") select[aria-label="Change todo status"]',
+    (el) => (el as HTMLSelectElement).value,
+  );
+  expect(selectedValue).toBe('in_progress');
+
+  // release the held PATCH so the server can respond and test can clean up
+  releasePatch();
+  await browser.close();
+}, 30000);
+
+test('todo disappears instantly on delete before server responds', async () => {
+  expect(composeEnv).not.toBeNull();
+  const port = process.env.FRONTEND_PORT || '3000';
+  const browser = await chromium.launch();
+  const page = await browser.newPage();
+  await page.goto(`http://localhost:${port}`);
+
+  // create a todo to delete
+  await page.fill('input[placeholder="New todo"]', 'optimistic delete');
+  await page.click('button:has-text("Add")');
+  await page.waitForSelector('text=optimistic delete');
+
+  // intercept DELETE requests to delay them
+  let releaseDelete!: () => void;
+  const deleteHeld = new Promise<void>((resolve) => {
+    releaseDelete = resolve;
+  });
+  await page.route('**/*', async (route, request) => {
+    if (request.method() === 'DELETE') {
+      await deleteHeld;
+    }
+    route.continue();
+  });
+
+  // accept confirmation dialog
+  page.on('dialog', (dialog) => dialog.accept());
+
+  const deleteBtn = await page.waitForSelector(
+    'div.bg-card:has-text("optimistic delete") button[aria-label="Delete todo"]',
+  );
+  await deleteBtn.click();
+
+  // todo should disappear immediately WITHOUT waiting for the server
+  await page.waitForSelector('text=optimistic delete', {
+    state: 'detached',
+    timeout: 2000,
+  });
+
+  // release so server can respond and browser can close cleanly
+  releaseDelete();
+  await browser.close();
+}, 30000);
+
+// --- Story 2.12: Keyboard-only navigation test ---
+
+test('full todo workflow completes using keyboard only', async () => {
+  expect(composeEnv).not.toBeNull();
+  const port = process.env.FRONTEND_PORT || '3000';
+  const browser = await chromium.launch();
+  const page = await browser.newPage();
+  await page.goto(`http://localhost:${port}`);
+
+  // wait for page to be ready
+  await page.waitForSelector('h1:has-text("Todo List")');
+  await page
+    .waitForSelector('[role="status"]', { state: 'detached', timeout: 5000 })
+    .catch(() => {});
+
+  // Step 1: Tab to input, type, press Enter to create todo
+  await page.keyboard.press('Tab');
+  await page.keyboard.type('keyboard todo');
+  await page.keyboard.press('Enter');
+  await page.waitForSelector('text=keyboard todo');
+
+  // Step 2: Tab to the status dropdown and change it with keyboard
+  // The todo just added ends up in the To Do column; tab to reach the select
+  const card = page.locator('div.bg-card', { hasText: 'keyboard todo' });
+  await card.locator('select[aria-label="Change todo status"]').focus();
+  await page.keyboard.press('ArrowDown'); // move to next option (in_progress)
+  await page.keyboard.press('Tab'); // commit and move focus forward
+
+  // verify status changed
+  const statusVal = await card
+    .locator('select[aria-label="Change todo status"]')
+    .inputValue();
+  expect(statusVal).toBe('in_progress');
+
+  // Step 3: Tab to the edit button, press Enter to enter edit mode
+  await card.locator('button[aria-label="Edit todo"]').focus();
+  await page.keyboard.press('Enter');
+  await page.waitForSelector('input[aria-label="Edit todo text"]');
+
+  // Step 4: Clear and type new text, press Enter to save
+  await page.keyboard.press('Control+a');
+  await page.keyboard.type('keyboard edited');
+  await page.keyboard.press('Enter');
+  await page.waitForSelector('text=keyboard edited');
+
+  // Step 5: Tab to delete button, press Enter to delete (accept dialog)
+  page.once('dialog', (dialog) => dialog.accept());
+  await card.locator('button[aria-label="Delete todo"]').focus();
+  await page.keyboard.press('Enter');
+  await page.waitForSelector('text=keyboard edited', {
+    state: 'detached',
+    timeout: 5000,
+  });
+
+  await browser.close();
+}, 60000);

@@ -91,6 +91,7 @@ export default function TodoItem({ todo, onStatusChange, onDelete, onEdit }: Tod
             />
             <button
               aria-label="Save edit"
+              title="Save"
               onClick={handleSave}
               className="px-2 py-1 text-xs text-green-600 hover:text-green-800 cursor-pointer"
             >
@@ -98,6 +99,7 @@ export default function TodoItem({ todo, onStatusChange, onDelete, onEdit }: Tod
             </button>
             <button
               aria-label="Cancel edit"
+              title="Cancel"
               onClick={handleCancel}
               className="px-2 py-1 text-xs text-gray-600 hover:text-gray-800 cursor-pointer"
             >
@@ -127,6 +129,7 @@ export default function TodoItem({ todo, onStatusChange, onDelete, onEdit }: Tod
             </select>
             <button
               aria-label="Edit todo"
+              title="Edit"
               onClick={() => setIsEditing(true)}
               className="px-2 py-1 text-xs text-blue-600 hover:text-blue-800 cursor-pointer"
             >
@@ -134,6 +137,7 @@ export default function TodoItem({ todo, onStatusChange, onDelete, onEdit }: Tod
             </button>
             <button
               aria-label="Delete todo"
+              title="Delete"
               onClick={() => {
                 if (window.confirm('Delete this todo?')) {
                   onDelete(todo.id);

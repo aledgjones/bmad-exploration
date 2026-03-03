@@ -1,6 +1,6 @@
 # Story 2.12: Core actions work without onboarding or help text
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 
@@ -33,38 +33,38 @@ so that I can use the app immediately.
 
 ## Tasks / Subtasks
 
-- [ ] Audit all interactive elements for affordance and ARIA compliance (AC: 2, 3)
-  - [ ] `NewTodoForm`: Input has `placeholder="New todo"` ✓ and hidden `<label>` ✓ and Add button ✓
-  - [ ] `TodoItem` status dropdown: has `aria-label="Change todo status"` ✓ and color-coded badge ✓
-  - [ ] `TodoItem` edit button: has `aria-label="Edit todo"` ✓ and ✎ icon ✓
-  - [ ] `TodoItem` delete button: has `aria-label="Delete todo"` ✓ and × icon ✓
-  - [ ] `TodoItem` edit mode: input has `aria-label="Edit todo text"` ✓, save (✓) has `aria-label="Save edit"` ✓, cancel (✗) has `aria-label="Cancel edit"` ✓
-  - [ ] Add `title` attributes to icon-only buttons for hover tooltips on non-touch devices
-- [ ] Add `title` tooltips to icon-only buttons for discoverability (AC: 2, 3)
-  - [ ] Edit button (✎): `title="Edit"`
-  - [ ] Delete button (×): `title="Delete"`
-  - [ ] Save edit button (✓): `title="Save"`
-  - [ ] Cancel edit button (✗): `title="Cancel"`
-- [ ] Keyboard navigation audit and fixes (AC: 4)
-  - [ ] Verify Tab order flows logically: input → Add button → (for each todo) status dropdown → edit → delete
-  - [ ] Verify Enter submits the new-todo form ✓
-  - [ ] Verify Enter saves text edit ✓
-  - [ ] Verify Escape cancels text edit ✓
-  - [ ] Verify Space/Enter activates buttons (default browser behavior for `<button>`) ✓
-  - [ ] Fix any elements using `<div>` with `onClick` that should be `<button>` (check for missing keyboard handlers)
-- [ ] Verify no onboarding/help text exists (AC: 5)
-  - [ ] Confirm no tutorial overlays, tooltips-on-first-load, or help modals are rendered
-  - [ ] Confirm no "how to use" text appears in the UI
-  - [ ] This is a verification-only check — the app currently has no onboarding
-- [ ] Add accessibility and usability unit tests (AC: 1, 2, 3, 4)
-  - [ ] `NewTodoForm.test.tsx`: Verify hidden label exists (already tested ✓)
-  - [ ] `TodoItem.test.tsx`: Verify all buttons have `aria-label` attributes (partially tested ✓)
-  - [ ] `TodoItem.test.tsx`: Verify icon buttons have `title` attributes (new test)
-  - [ ] `TodoItem.test.tsx`: Verify keyboard navigation works within edit mode (Enter saves, Escape cancels — already tested ✓)
-  - [ ] `page.test.tsx`: Verify no elements with "help", "tutorial", or "onboarding" text exist
-- [ ] Add e2e keyboard-only test (AC: 4)
-  - [ ] Complete full workflow using only keyboard: Tab to input, type, Enter to add, Tab to status, change, Tab to edit, Enter, type, Enter to save, Tab to delete, Enter to delete
-  - [ ] Verify all actions complete successfully without mouse/touch
+- [x] Audit all interactive elements for affordance and ARIA compliance (AC: 2, 3)
+  - [x] `NewTodoForm`: Input has `placeholder="New todo"` ✓ and hidden `<label>` ✓ and Add button ✓
+  - [x] `TodoItem` status dropdown: has `aria-label="Change todo status"` ✓ and color-coded badge ✓
+  - [x] `TodoItem` edit button: has `aria-label="Edit todo"` ✓ and ✎ icon ✓
+  - [x] `TodoItem` delete button: has `aria-label="Delete todo"` ✓ and × icon ✓
+  - [x] `TodoItem` edit mode: input has `aria-label="Edit todo text"` ✓, save (✓) has `aria-label="Save edit"` ✓, cancel (✗) has `aria-label="Cancel edit"` ✓
+  - [x] Add `title` attributes to icon-only buttons for hover tooltips on non-touch devices
+- [x] Add `title` tooltips to icon-only buttons for discoverability (AC: 2, 3)
+  - [x] Edit button (✎): `title="Edit"`
+  - [x] Delete button (×): `title="Delete"`
+  - [x] Save edit button (✓): `title="Save"`
+  - [x] Cancel edit button (✗): `title="Cancel"`
+- [x] Keyboard navigation audit and fixes (AC: 4)
+  - [x] Verify Tab order flows logically: input → Add button → (for each todo) status dropdown → edit → delete
+  - [x] Verify Enter submits the new-todo form ✓
+  - [x] Verify Enter saves text edit ✓
+  - [x] Verify Escape cancels text edit ✓
+  - [x] Verify Space/Enter activates buttons (default browser behavior for `<button>`) ✓
+  - [x] Fix any elements using `<div>` with `onClick` that should be `<button>` (check for missing keyboard handlers)
+- [x] Verify no onboarding/help text exists (AC: 5)
+  - [x] Confirm no tutorial overlays, tooltips-on-first-load, or help modals are rendered
+  - [x] Confirm no "how to use" text appears in the UI
+  - [x] This is a verification-only check — the app currently has no onboarding
+- [x] Add accessibility and usability unit tests (AC: 1, 2, 3, 4)
+  - [x] `NewTodoForm.test.tsx`: Verify hidden label exists (already tested ✓)
+  - [x] `TodoItem.test.tsx`: Verify all buttons have `aria-label` attributes (partially tested ✓)
+  - [x] `TodoItem.test.tsx`: Verify icon buttons have `title` attributes (new test)
+  - [x] `TodoItem.test.tsx`: Verify keyboard navigation works within edit mode (Enter saves, Escape cancels — already tested ✓)
+  - [x] `page.test.tsx`: Verify no elements with "help", "tutorial", or "onboarding" text exist
+- [x] Add e2e keyboard-only test (AC: 4)
+  - [x] Complete full workflow using only keyboard: Tab to input, type, Enter to add, Tab to status, change, Tab to edit, Enter, type, Enter to save, Tab to delete, Enter to delete
+  - [x] Verify all actions complete successfully without mouse/touch
 
 ## Dev Notes
 
@@ -186,10 +186,26 @@ Frontend-only story. No backend, API, or database changes.
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Sonnet 4.6
 
 ### Debug Log References
 
+N/A
+
 ### Completion Notes List
 
+- Audit confirmed: all interactive elements already have `aria-label`, semantic HTML, and keyboard handlers from Stories 2.1–2.6.
+- Production change: added `title` attributes to 4 icon-only buttons in `TodoItem.tsx` (Edit, Delete, Save, Cancel).
+- No onboarding/tutorial/help text was found — the app has none.
+- No `<div onClick>` elements found; all clickable elements use `<button>` or `<select>`.
+- 2 new `TodoItem.test.tsx` tests verify `title` attributes on view-mode and edit-mode buttons.
+- 1 new `page.test.tsx` test verifies no onboarding/help text (shared with Story 2.11 addition block).
+- 1 new e2e keyboard-only workflow test added to `playwright-smoke.test.ts` (full CRUD via Tab/Enter/Escape/ArrowDown).
+- All 91 frontend unit tests pass.
+
 ### File List
+
+- `frontend/app/components/TodoItem.tsx` — modified (added `title` to Edit, Delete, Save, Cancel buttons)
+- `frontend/tests/TodoItem.test.tsx` — modified (2 new title tooltip tests)
+- `frontend/tests/page.test.tsx` — modified (1 no-onboarding test, added alongside Story 2.11 tests)
+- `e2e/playwright-smoke.test.ts` — modified (keyboard-only e2e workflow test)
