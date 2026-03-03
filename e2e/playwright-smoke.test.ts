@@ -322,15 +322,23 @@ test('done items have reduced opacity and removing done status removes it', asyn
   await cardLocator.waitFor({ state: 'visible' });
 
   // verify card does NOT have opacity-60 initially (status is todo)
-  const classBeforeDone = await cardLocator.getAttribute('class');
-  expect(classBeforeDone).not.toContain('opacity-60');
+  // waitForFunction is used as the  assertion — it throws on timeout
+  await page.waitForFunction(
+    () => {
+      const cards = Array.from(document.querySelectorAll('div.bg-card'));
+      const card = cards.find((c) => c.textContent?.includes('opacity test'));
+      return card != null && !card.className.includes('opacity-60');
+    },
+    undefined,
+    { timeout: 5000 },
+  );
 
   // change status to done — interaction scoped to this specific card
   await cardLocator
     .locator('select[aria-label="Change todo status"]')
     .selectOption('done');
 
-  // wait for opacity-60 to appear on the card
+  // wait for opacity-60 to appear — already acts as the assertion
   await page.waitForFunction(
     () => {
       const cards = Array.from(document.querySelectorAll('div.bg-card'));
@@ -341,17 +349,12 @@ test('done items have reduced opacity and removing done status removes it', asyn
     { timeout: 10000 },
   );
 
-  // verify card now has opacity-60
-  const classAfterDone = await cardLocator.getAttribute('class');
-  expect(classAfterDone).toContain('opacity-60');
-
   // change back to todo — scoped to this card
   await cardLocator
     .locator('select[aria-label="Change todo status"]')
     .selectOption('todo');
 
-  // Re-query the card from live DOM rather than using the stale handle —
-  // React may remount the element when status changes, detaching the old handle.
+  // wait for opacity-60 to be removed — already acts as the assertion
   await page.waitForFunction(
     () => {
       const cards = Array.from(document.querySelectorAll('div.bg-card'));
@@ -361,10 +364,6 @@ test('done items have reduced opacity and removing done status removes it', asyn
     undefined,
     { timeout: 10000 },
   );
-
-  // verify card no longer has opacity-60
-  const classAfterRevert = await cardLocator.getAttribute('class');
-  expect(classAfterRevert).not.toContain('opacity-60');
 
   await browser.close();
 }, 60000);
