@@ -1,6 +1,6 @@
 # Story 3.2: Auto-save changes to prevent data loss
 
-Status: review
+Status: done
 
 ## Story
 
@@ -271,8 +271,14 @@ Story 3.1 establishes that **reads** persist (GET /todos after refresh). Story 3
 90% minimum enforced by `scripts/check-coverage.js`. Run after changes:
 
 ```bash
-cd backend && npm run test:coverage
-cd frontend && npm run test:coverage
+# From project root — runs both backend + frontend coverage then checks threshold
+npm run coverage
+
+# Backend only
+npm run coverage:backend
+
+# Frontend only
+npm run coverage:frontend
 ```
 
 ### Project Structure Notes
@@ -317,7 +323,9 @@ Claude Sonnet 4.6
 - Confirmed e2e tests for status-change, edit, and delete persistence after reload already existed in `e2e/playwright-smoke.test.ts`.
 - All 31 backend tests pass; all 91 frontend tests pass.
 - Combined coverage: 93.07%.
+- **Code review fixes applied**: raised coverage threshold in `scripts/check-coverage.js` from 80 → 90; corrected coverage CLI commands in Dev Notes; refactored `backend/test/todos.test.ts` to share a single Fastify/PrismaClient instance via `beforeAll`/`afterAll` (eliminates per-test PrismaClient leak).
 
 ### File List
 
-- `backend/test/todos.test.ts` — added 3 new PATCH/DELETE→GET round-trip tests
+- `backend/test/todos.test.ts` — added 3 new PATCH/DELETE→GET round-trip tests; refactored to shared server instance (code review fix)
+- `scripts/check-coverage.js` — raised default threshold from 80 to 90 (code review fix)

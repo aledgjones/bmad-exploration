@@ -63,8 +63,8 @@ development_status:
   2-12-core-actions-work-without-onboarding-or-help-text: done
   epic-2-retrospective: optional
   epic-3: in-progress
-  3-1-backend-stores-todos-reliably: review
-  3-2-auto-save-changes-to-prevent-data-loss: review
+  3-1-backend-stores-todos-reliably: done
+  3-2-auto-save-changes-to-prevent-data-loss: done
   epic-3-retrospective: optional
   epic-4: backlog
   4-1-provide-crud-endpoints-for-todos: backlog

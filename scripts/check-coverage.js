@@ -50,7 +50,7 @@ if (require.main === module) {
     ? Number(process.env.THRESHOLD)
     : undefined;
   const effectiveThreshold =
-    typeof envThreshold === 'number' ? envThreshold : 80;
+    typeof envThreshold === 'number' ? envThreshold : 90;
   if (pct < effectiveThreshold) {
     console.error(
       `ERROR: total coverage ${pct.toFixed(2)}% < threshold ${effectiveThreshold}`,

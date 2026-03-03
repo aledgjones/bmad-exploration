@@ -1,6 +1,6 @@
 # Story 3.1: Backend stores todos reliably
 
-Status: review
+Status: done
 
 ## Story
 
@@ -168,11 +168,14 @@ test('todos persist after page reload', async ({ page }) => {
 The project enforces **90% coverage** via `scripts/check-coverage.js`. After adding tests, run:
 
 ```bash
-# Backend
-cd backend && npm run test:coverage
+# From project root — runs both backend + frontend coverage then checks threshold
+npm run coverage
 
-# Frontend
-cd frontend && npm run test:coverage
+# Backend only
+npm run coverage:backend
+
+# Frontend only
+npm run coverage:frontend
 ```
 
 If coverage drops below 90%, either add tests or verify new code paths are covered.
@@ -225,7 +228,9 @@ Claude Sonnet 4.6
 - Confirmed e2e test `todos persist after page refresh` already existed in `e2e/playwright-smoke.test.ts`.
 - All 31 backend tests pass; all 91 frontend tests pass.
 - Combined coverage: 93.07% (threshold 80%).
+- **Code review fixes applied**: raised coverage threshold in `scripts/check-coverage.js` from 80 → 90; corrected coverage CLI commands in Dev Notes; refactored `backend/test/todos.test.ts` to share a single Fastify/PrismaClient instance via `beforeAll`/`afterAll` (eliminates per-test PrismaClient leak).
 
 ### File List
 
-- `backend/test/todos.test.ts` — added 4 new round-trip persistence tests (story 3-1 and 3-2)
+- `backend/test/todos.test.ts` — added 4 new round-trip persistence tests (story 3-1 and 3-2); refactored to shared server instance (code review fix)
+- `scripts/check-coverage.js` — raised default threshold from 80 to 90 (code review fix)

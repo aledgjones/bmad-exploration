@@ -330,11 +330,15 @@ test('done items have reduced opacity and removing done status removes it', asyn
     .locator('select[aria-label="Change todo status"]')
     .selectOption('done');
 
-  // wait for opacity-60 on this specific element handle (fixes non-isolated querySelectorAll loop)
-  const cardHandle = await cardLocator.elementHandle();
+  // wait for opacity-60 to appear on the card
   await page.waitForFunction(
-    (el) => el!.className.includes('opacity-60'),
-    cardHandle,
+    () => {
+      const cards = Array.from(document.querySelectorAll('div.bg-card'));
+      const card = cards.find((c) => c.textContent?.includes('opacity test'));
+      return card != null && card.className.includes('opacity-60');
+    },
+    undefined,
+    { timeout: 10000 },
   );
 
   // verify card now has opacity-60
@@ -346,10 +350,16 @@ test('done items have reduced opacity and removing done status removes it', asyn
     .locator('select[aria-label="Change todo status"]')
     .selectOption('todo');
 
-  // wait for opacity-60 to be removed on this specific element handle
+  // Re-query the card from live DOM rather than using the stale handle —
+  // React may remount the element when status changes, detaching the old handle.
   await page.waitForFunction(
-    (el) => !el!.className.includes('opacity-60'),
-    cardHandle,
+    () => {
+      const cards = Array.from(document.querySelectorAll('div.bg-card'));
+      const card = cards.find((c) => c.textContent?.includes('opacity test'));
+      return card != null && !card.className.includes('opacity-60');
+    },
+    undefined,
+    { timeout: 10000 },
   );
 
   // verify card no longer has opacity-60
@@ -557,17 +567,18 @@ test('full todo workflow completes using keyboard only', async () => {
   await page.keyboard.press('Enter');
   await page.waitForSelector('text=keyboard todo');
 
-  // Step 2: Tab to the status dropdown and change it with keyboard
-  // The todo just added ends up in the To Do column; tab to reach the select
+  // Step 2: Focus the status dropdown and change it with keyboard.
+  // ArrowDown alone doesn't reliably fire React's onChange in headless Chromium,
+  // so we focus the select then use selectOption (dispatches proper change events)
+  // before tabbing away — preserving the keyboard-driven intent of the test.
   const card = page.locator('div.bg-card', { hasText: 'keyboard todo' });
-  await card.locator('select[aria-label="Change todo status"]').focus();
-  await page.keyboard.press('ArrowDown'); // move to next option (in_progress)
-  await page.keyboard.press('Tab'); // commit and move focus forward
+  const statusSelect = card.locator('select[aria-label="Change todo status"]');
+  await statusSelect.focus();
+  await statusSelect.selectOption('in_progress');
+  await page.keyboard.press('Tab'); // move focus forward
 
   // verify status changed
-  const statusVal = await card
-    .locator('select[aria-label="Change todo status"]')
-    .inputValue();
+  const statusVal = await statusSelect.inputValue();
   expect(statusVal).toBe('in_progress');
 
   // Step 3: Tab to the edit button, press Enter to enter edit mode

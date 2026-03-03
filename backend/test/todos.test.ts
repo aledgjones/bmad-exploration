@@ -1,12 +1,14 @@
 /// <reference lib="dom" />
 import { test, expect, beforeAll, afterAll } from 'vitest';
-import Fastify from 'fastify';
+import Fastify, { FastifyInstance } from 'fastify';
 import { app, options } from '../src/app.js';
 import { PrismaClient } from '@prisma/client';
 import { PostgreSqlContainer } from 'testcontainers';
 
 let prisma: PrismaClient;
 let container: any;
+// Shared server instance — avoids spawning a new PrismaClient per test
+let server: FastifyInstance;
 
 beforeAll(async () => {
   container = await new PostgreSqlContainer('postgres:15')
@@ -38,18 +40,19 @@ beforeAll(async () => {
       }
     });
   });
+  // Shared Fastify instance — one PrismaClient for the whole suite
+  server = Fastify();
+  await server.register(app, options);
+  await server.ready();
 });
 
 afterAll(async () => {
+  if (server) await server.close();
   if (prisma) await prisma.$disconnect();
   if (container) await container.stop();
 });
 
 test('POST /todos creates a todo with default status', async () => {
-  const server = Fastify();
-  await server.register(app, options);
-  await server.ready();
-
   const response = await server.inject({
     method: 'POST',
     url: '/todos',
@@ -66,10 +69,6 @@ test('POST /todos creates a todo with default status', async () => {
 // new test - whitespace should fail
 
 test('POST /todos rejects whitespace-only text', async () => {
-  const server = Fastify();
-  await server.register(app, options);
-  await server.ready();
-
   const response = await server.inject({
     method: 'POST',
     url: '/todos',
@@ -81,10 +80,6 @@ test('POST /todos rejects whitespace-only text', async () => {
 });
 
 test('GET /todos returns empty list when there are no todos', async () => {
-  const server = Fastify();
-  await server.register(app, options);
-  await server.ready();
-
   // ensure database is clean in case prior tests left data
   await prisma.todo.deleteMany();
 
@@ -94,10 +89,6 @@ test('GET /todos returns empty list when there are no todos', async () => {
 });
 
 test('GET /todos returns list including created tasks', async () => {
-  const server = Fastify();
-  await server.register(app, options);
-  await server.ready();
-
   // create one entry via prisma directly to ensure something exists
   await prisma.todo.create({ data: { text: 'another', status: 'todo' } });
   const response = await server.inject({ method: 'GET', url: '/todos' });
@@ -151,8 +142,6 @@ test('routes return 500 if prisma not initialized', async () => {
   });
   expect(del.statusCode).toBe(500);
   expect(del.json()).toEqual({ error: 'database not initialized' });
-
-  await server.close();
 });
 
 test('example route responds correctly', async () => {
@@ -164,17 +153,11 @@ test('example route responds correctly', async () => {
   const res = await server.inject({ method: 'GET', url: '/example' });
   expect(res.statusCode).toBe(200);
   expect(res.body).toBe('this is an example');
-
-  await server.close();
 });
 
 // --- new status-change tests ---
 
 test('PATCH /todos/:id updates status when valid', async () => {
-  const server = Fastify();
-  await server.register(app, options);
-  await server.ready();
-
   // create a todo directly with prisma so we know id
   const created = await prisma.todo.create({
     data: { text: 'foo', status: 'todo' },
@@ -203,15 +186,9 @@ test('PATCH /todos/:id updates status when valid', async () => {
   expect(fromDb?.status).toBe('in_progress');
   // completedAt may be null or undefined when not set
   expect(fromDb?.completedAt == null).toBe(true);
-
-  await server.close();
 });
 
 test('PATCH /todos/:id rejects invalid status', async () => {
-  const server = Fastify();
-  await server.register(app, options);
-  await server.ready();
-
   const created = await prisma.todo.create({
     data: { text: 'bar', status: 'todo' },
   });
@@ -224,15 +201,9 @@ test('PATCH /todos/:id rejects invalid status', async () => {
 
   expect(response.statusCode).toBe(400);
   // fastify will include validation error details; just ensure it's a 400
-
-  await server.close();
 });
 
 test('PATCH /todos/:id returns 404 for missing item', async () => {
-  const server = Fastify();
-  await server.register(app, options);
-  await server.ready();
-
   const response = await server.inject({
     method: 'PATCH',
     url: '/todos/999999',
@@ -247,17 +218,11 @@ test('PATCH /todos/:id returns 404 for missing item', async () => {
   }
   expect(response.statusCode).toBe(404);
   expect(response.json()).toEqual({ error: 'todo not found' });
-
-  await server.close();
 });
 
 // new test: completion timestamp is recorded when marking done
 
 test('PATCH /todos/:id sets completedAt when status done', async () => {
-  const server = Fastify();
-  await server.register(app, options);
-  await server.ready();
-
   const created = await prisma.todo.create({
     data: { text: 'complete me', status: 'todo' },
   });
@@ -277,17 +242,11 @@ test('PATCH /todos/:id sets completedAt when status done', async () => {
   const fromDb = await prisma.todo.findUnique({ where: { id: created.id } });
   expect(fromDb?.status).toBe('done');
   expect(fromDb?.completedAt).not.toBeNull();
-
-  await server.close();
 });
 
 // new test: completedAt cleared when status moves away from done
 
 test('PATCH /todos/:id clears completedAt when status returns from done', async () => {
-  const server = Fastify();
-  await server.register(app, options);
-  await server.ready();
-
   // create item initially done
   const created = await prisma.todo.create({
     data: { text: 'change me', status: 'done', completedAt: new Date() },
@@ -305,17 +264,11 @@ test('PATCH /todos/:id clears completedAt when status returns from done', async 
   const fromDb2 = await prisma.todo.findUnique({ where: { id: created.id } });
   expect(fromDb2?.status).toBe('todo');
   expect(fromDb2?.completedAt).toBeNull();
-
-  await server.close();
 });
 
 // new test to exercise invalid id parsing
 
 test('PATCH /todos/:id rejects non-numeric id', async () => {
-  const server = Fastify();
-  await server.register(app, options);
-  await server.ready();
-
   const response = await server.inject({
     method: 'PATCH',
     url: '/todos/not-a-number',
@@ -323,17 +276,11 @@ test('PATCH /todos/:id rejects non-numeric id', async () => {
   });
   expect(response.statusCode).toBe(400);
   expect(response.json()).toEqual({ error: 'invalid id' });
-
-  await server.close();
 });
 
 // --- PATCH text update tests ---
 
 test('PATCH /todos/:id updates text when valid', async () => {
-  const server = Fastify();
-  await server.register(app, options);
-  await server.ready();
-
   const created = await prisma.todo.create({
     data: { text: 'original', status: 'todo' },
   });
@@ -351,15 +298,9 @@ test('PATCH /todos/:id updates text when valid', async () => {
 
   const fromDb = await prisma.todo.findUnique({ where: { id: created.id } });
   expect(fromDb?.text).toBe('updated text');
-
-  await server.close();
 });
 
 test('PATCH /todos/:id updates both text and status', async () => {
-  const server = Fastify();
-  await server.register(app, options);
-  await server.ready();
-
   const created = await prisma.todo.create({
     data: { text: 'both', status: 'todo' },
   });
@@ -375,15 +316,9 @@ test('PATCH /todos/:id updates both text and status', async () => {
   expect(body.text).toBe('both updated');
   expect(body.status).toBe('done');
   expect(body.completedAt).toBeTruthy();
-
-  await server.close();
 });
 
 test('PATCH /todos/:id rejects empty text', async () => {
-  const server = Fastify();
-  await server.register(app, options);
-  await server.ready();
-
   const created = await prisma.todo.create({
     data: { text: 'keep', status: 'todo' },
   });
@@ -396,15 +331,9 @@ test('PATCH /todos/:id rejects empty text', async () => {
 
   // minLength:1 in schema means Fastify rejects before handler
   expect(response.statusCode).toBe(400);
-
-  await server.close();
 });
 
 test('PATCH /todos/:id rejects whitespace-only text', async () => {
-  const server = Fastify();
-  await server.register(app, options);
-  await server.ready();
-
   const created = await prisma.todo.create({
     data: { text: 'keep', status: 'todo' },
   });
@@ -417,15 +346,9 @@ test('PATCH /todos/:id rejects whitespace-only text', async () => {
 
   expect(response.statusCode).toBe(400);
   expect(response.json()).toEqual({ error: 'text must be a non-empty string' });
-
-  await server.close();
 });
 
 test('PATCH /todos/:id rejects body with neither text nor status', async () => {
-  const server = Fastify();
-  await server.register(app, options);
-  await server.ready();
-
   const created = await prisma.todo.create({
     data: { text: 'keep', status: 'todo' },
   });
@@ -437,17 +360,11 @@ test('PATCH /todos/:id rejects body with neither text nor status', async () => {
   });
 
   expect(response.statusCode).toBe(400);
-
-  await server.close();
 });
 
 // --- DELETE endpoint tests ---
 
 test('DELETE /todos/:id returns 204 on success', async () => {
-  const server = Fastify();
-  await server.register(app, options);
-  await server.ready();
-
   const created = await prisma.todo.create({
     data: { text: 'delete me', status: 'todo' },
   });
@@ -463,15 +380,9 @@ test('DELETE /todos/:id returns 204 on success', async () => {
   // verify item no longer exists in DB
   const fromDb = await prisma.todo.findUnique({ where: { id: created.id } });
   expect(fromDb).toBeNull();
-
-  await server.close();
 });
 
 test('DELETE /todos/:id returns 404 for non-existent id', async () => {
-  const server = Fastify();
-  await server.register(app, options);
-  await server.ready();
-
   const response = await server.inject({
     method: 'DELETE',
     url: '/todos/999999',
@@ -479,15 +390,9 @@ test('DELETE /todos/:id returns 404 for non-existent id', async () => {
 
   expect(response.statusCode).toBe(404);
   expect(response.json()).toEqual({ error: 'todo not found' });
-
-  await server.close();
 });
 
 test('DELETE /todos/:id rejects non-numeric id', async () => {
-  const server = Fastify();
-  await server.register(app, options);
-  await server.ready();
-
   const response = await server.inject({
     method: 'DELETE',
     url: '/todos/not-a-number',
@@ -495,8 +400,6 @@ test('DELETE /todos/:id rejects non-numeric id', async () => {
 
   expect(response.statusCode).toBe(400);
   expect(response.json()).toEqual({ error: 'invalid id' });
-
-  await server.close();
 });
 
 // additional low-level tests to hit internal branches for coverage
@@ -626,10 +529,6 @@ test('direct handler invocation exercises trim, create/get and patch error paths
 // --- Story 3.1: POST→GET round-trip persistence tests ---
 
 test('POST /todos then GET /todos returns the persisted todo (round-trip)', async () => {
-  const server = Fastify();
-  await server.register(app, options);
-  await server.ready();
-
   // ensure a clean slate so the assertion is deterministic
   await prisma.todo.deleteMany();
 
@@ -652,17 +551,11 @@ test('POST /todos then GET /todos returns the persisted todo (round-trip)', asyn
   expect(
     list.some((t: any) => t.id === created.id && t.text === 'persist me'),
   ).toBe(true);
-
-  await server.close();
 });
 
 // --- Story 3.2: mutation→GET round-trip tests ---
 
 test('PATCH status then GET /todos shows updated status in list', async () => {
-  const server = Fastify();
-  await server.register(app, options);
-  await server.ready();
-
   const created = await prisma.todo.create({
     data: { text: 'status-persist', status: 'todo' },
   });
@@ -682,15 +575,9 @@ test('PATCH status then GET /todos shows updated status in list', async () => {
   expect(found?.status).toBe('done');
   // completedAt must be set when status is done
   expect(found?.completedAt).not.toBeNull();
-
-  await server.close();
 });
 
 test('PATCH text then GET /todos shows updated text in list', async () => {
-  const server = Fastify();
-  await server.register(app, options);
-  await server.ready();
-
   const created = await prisma.todo.create({
     data: { text: 'text-persist', status: 'todo' },
   });
@@ -708,15 +595,9 @@ test('PATCH text then GET /todos shows updated text in list', async () => {
   const list = getRes.json();
   const found = list.find((t: any) => t.id === created.id);
   expect(found?.text).toBe('updated-text');
-
-  await server.close();
 });
 
 test('DELETE then GET /todos confirms todo no longer in list', async () => {
-  const server = Fastify();
-  await server.register(app, options);
-  await server.ready();
-
   const created = await prisma.todo.create({
     data: { text: 'delete-persist', status: 'todo' },
   });
@@ -732,6 +613,4 @@ test('DELETE then GET /todos confirms todo no longer in list', async () => {
   expect(getRes.statusCode).toBe(200);
   const list = getRes.json();
   expect(list.some((t: any) => t.id === created.id)).toBe(false);
-
-  await server.close();
 });
