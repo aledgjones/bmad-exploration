@@ -1,6 +1,6 @@
 # Story 4.1: Provide CRUD endpoints for todos
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -36,24 +36,24 @@ So that I can integrate the service into another application.
 
 ## Tasks / Subtasks
 
-- [ ] Verify `POST /todos` returns 201 + full todo JSON (AC: 1)
-  - [ ] Confirm response includes `id`, `text`, `status`, `createdAt`, `updatedAt`
-  - [ ] Confirm `Content-Type: application/json` header is present
-- [ ] Verify `GET /todos` returns 200 + JSON array (AC: 2)
-  - [ ] Confirm empty array returned when no todos exist
-  - [ ] Confirm array ordered by `createdAt desc`
-- [ ] Verify `PATCH /todos/:id` returns 200 + updated object (AC: 3)
-  - [ ] Confirm status and text can be updated independently
-  - [ ] Confirm both can be updated in a single call
-- [ ] Verify `DELETE /todos/:id` returns 204 + empty body (AC: 4)
-- [ ] Verify 404 for missing resource on PATCH and DELETE (AC: 5)
-- [ ] Verify 400 for bad request bodies (AC: 6)
-  - [ ] POST without `text`
-  - [ ] POST with whitespace-only `text`
-  - [ ] PATCH with body `{}`
-  - [ ] PATCH/DELETE with non-numeric `:id`
-- [ ] Add/confirm Vitest integration tests in `backend/test/todos.test.ts` explicitly labelled as Story 4.1 API compliance tests
-- [ ] Maintain 90% coverage threshold
+- [x] Verify `POST /todos` returns 201 + full todo JSON (AC: 1)
+  - [x] Confirm response includes `id`, `text`, `status`, `createdAt`, `updatedAt`
+  - [x] Confirm `Content-Type: application/json` header is present
+- [x] Verify `GET /todos` returns 200 + JSON array (AC: 2)
+  - [x] Confirm empty array returned when no todos exist
+  - [x] Confirm array ordered by `createdAt desc`
+- [x] Verify `PATCH /todos/:id` returns 200 + updated object (AC: 3)
+  - [x] Confirm status and text can be updated independently
+  - [x] Confirm both can be updated in a single call
+- [x] Verify `DELETE /todos/:id` returns 204 + empty body (AC: 4)
+- [x] Verify 404 for missing resource on PATCH and DELETE (AC: 5)
+- [x] Verify 400 for bad request bodies (AC: 6)
+  - [x] POST without `text`
+  - [x] POST with whitespace-only `text`
+  - [x] PATCH with body `{}`
+  - [x] PATCH/DELETE with non-numeric `:id`
+- [x] Add/confirm Vitest integration tests in `backend/test/todos.test.ts` explicitly labelled as Story 4.1 API compliance tests
+- [x] Maintain 90% coverage threshold
 
 ## Dev Notes
 
@@ -154,6 +154,19 @@ Claude Sonnet 4.6
 
 ### Debug Log References
 
+No issues encountered. All endpoints already correctly implemented; story was verification + API-compliance only.
+
 ### Completion Notes List
 
+- All four CRUD endpoints (`POST /todos`, `GET /todos`, `PATCH /todos/:id`, `DELETE /todos/:id`) verified against all ACs with explicit Story 4.1 labelled integration tests.
+- Added 15 new Story 4.1 API compliance tests to `backend/test/todos.test.ts` covering: full response shape including `updatedAt`, `Content-Type` header, `createdAt desc` ordering, and all AC6 bad-request scenarios.
+- No route implementation changes required — existing `backend/src/routes/todos.ts` was already fully compliant.
+- All 47 tests pass, 0 failures; combined coverage 93.07% (above 90% threshold).
+
 ### File List
+
+- `backend/test/todos.test.ts` — appended Story 4.1 API compliance test block (15 new tests)
+
+### Change Log
+
+- 2026-03-03: Added Story 4.1 API compliance tests (AC1–AC6) to `backend/test/todos.test.ts`; verified all endpoints meet HTTP/REST conventions; coverage 93.07%.

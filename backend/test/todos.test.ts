@@ -614,3 +614,212 @@ test('DELETE then GET /todos confirms todo no longer in list', async () => {
   const list = getRes.json();
   expect(list.some((t: any) => t.id === created.id)).toBe(false);
 });
+
+// =============================================================================
+// Story 4.1 API Compliance Tests
+// Validates RESTful CRUD endpoints from the perspective of an external API consumer
+// =============================================================================
+
+// --- AC 1: POST /todos returns 201 with full todo object ---
+
+test('[Story 4.1 AC1] POST /todos returns 201 with id, text, status, createdAt, updatedAt', async () => {
+  const response = await server.inject({
+    method: 'POST',
+    url: '/todos',
+    payload: { text: 'story 4.1 task' },
+  });
+  expect(response.statusCode).toBe(201);
+  const body = response.json();
+  expect(body).toHaveProperty('id');
+  expect(typeof body.id).toBe('number');
+  expect(body.text).toBe('story 4.1 task');
+  expect(body.status).toBe('todo');
+  expect(body).toHaveProperty('createdAt');
+  expect(body.createdAt).not.toBeNull();
+  expect(body).toHaveProperty('updatedAt');
+  expect(body.updatedAt).not.toBeNull();
+});
+
+test('[Story 4.1 AC1] POST /todos response includes Content-Type: application/json', async () => {
+  const response = await server.inject({
+    method: 'POST',
+    url: '/todos',
+    payload: { text: 'content-type check' },
+  });
+  expect(response.statusCode).toBe(201);
+  expect(response.headers['content-type']).toMatch(/application\/json/);
+});
+
+// --- AC 2: GET /todos returns 200 with JSON array ---
+
+test('[Story 4.1 AC2] GET /todos returns 200 with JSON array', async () => {
+  const response = await server.inject({ method: 'GET', url: '/todos' });
+  expect(response.statusCode).toBe(200);
+  expect(response.headers['content-type']).toMatch(/application\/json/);
+  expect(Array.isArray(response.json())).toBe(true);
+});
+
+test('[Story 4.1 AC2] GET /todos returns empty array when no todos exist', async () => {
+  await prisma.todo.deleteMany();
+  const response = await server.inject({ method: 'GET', url: '/todos' });
+  expect(response.statusCode).toBe(200);
+  expect(response.json()).toEqual([]);
+});
+
+test('[Story 4.1 AC2] GET /todos returns todos ordered by createdAt desc', async () => {
+  await prisma.todo.deleteMany();
+  // Create two todos with a deliberate time gap so createdAt ordering is deterministic
+  const first = await prisma.todo.create({
+    data: { text: 'first-item', status: 'todo' },
+  });
+  // Small delay to ensure distinct createdAt timestamps
+  await new Promise((r) => setTimeout(r, 20));
+  const second = await prisma.todo.create({
+    data: { text: 'second-item', status: 'todo' },
+  });
+
+  const response = await server.inject({ method: 'GET', url: '/todos' });
+  expect(response.statusCode).toBe(200);
+  const list = response.json();
+  expect(list.length).toBeGreaterThanOrEqual(2);
+  // Most recently created should appear first (desc order)
+  const firstIdx = list.findIndex((t: any) => t.id === second.id);
+  const secondIdx = list.findIndex((t: any) => t.id === first.id);
+  expect(firstIdx).toBeLessThan(secondIdx);
+});
+
+// --- AC 3: PATCH /todos/:id returns 200 with updated object ---
+
+test('[Story 4.1 AC3] PATCH /todos/:id updates status independently', async () => {
+  const todo = await prisma.todo.create({
+    data: { text: 'ac3-status', status: 'todo' },
+  });
+  const response = await server.inject({
+    method: 'PATCH',
+    url: `/todos/${todo.id}`,
+    payload: { status: 'in_progress' },
+  });
+  expect(response.statusCode).toBe(200);
+  const body = response.json();
+  expect(body.status).toBe('in_progress');
+  expect(body.text).toBe('ac3-status'); // unchanged
+  expect(body).toHaveProperty('id', todo.id);
+});
+
+test('[Story 4.1 AC3] PATCH /todos/:id updates text independently', async () => {
+  const todo = await prisma.todo.create({
+    data: { text: 'ac3-text-orig', status: 'todo' },
+  });
+  const response = await server.inject({
+    method: 'PATCH',
+    url: `/todos/${todo.id}`,
+    payload: { text: 'ac3-text-updated' },
+  });
+  expect(response.statusCode).toBe(200);
+  const body = response.json();
+  expect(body.text).toBe('ac3-text-updated');
+  expect(body.status).toBe('todo'); // unchanged
+});
+
+test('[Story 4.1 AC3] PATCH /todos/:id updates both text and status in a single call', async () => {
+  const todo = await prisma.todo.create({
+    data: { text: 'ac3-both', status: 'todo' },
+  });
+  const response = await server.inject({
+    method: 'PATCH',
+    url: `/todos/${todo.id}`,
+    payload: { text: 'ac3-both-updated', status: 'done' },
+  });
+  expect(response.statusCode).toBe(200);
+  const body = response.json();
+  expect(body.text).toBe('ac3-both-updated');
+  expect(body.status).toBe('done');
+  expect(body.completedAt).not.toBeNull();
+});
+
+// --- AC 4: DELETE /todos/:id returns 204 with no body ---
+
+test('[Story 4.1 AC4] DELETE /todos/:id returns 204 with empty body', async () => {
+  const todo = await prisma.todo.create({
+    data: { text: 'ac4-delete', status: 'todo' },
+  });
+  const response = await server.inject({
+    method: 'DELETE',
+    url: `/todos/${todo.id}`,
+  });
+  expect(response.statusCode).toBe(204);
+  expect(response.body).toBe('');
+});
+
+// --- AC 5: 404 for non-existent id on PATCH and DELETE ---
+
+test('[Story 4.1 AC5] PATCH /todos/:id returns 404 for non-existent id', async () => {
+  const response = await server.inject({
+    method: 'PATCH',
+    url: '/todos/999999999',
+    payload: { status: 'done' },
+  });
+  expect(response.statusCode).toBe(404);
+  expect(response.json()).toEqual({ error: 'todo not found' });
+});
+
+test('[Story 4.1 AC5] DELETE /todos/:id returns 404 for non-existent id', async () => {
+  const response = await server.inject({
+    method: 'DELETE',
+    url: '/todos/999999999',
+  });
+  expect(response.statusCode).toBe(404);
+  expect(response.json()).toEqual({ error: 'todo not found' });
+});
+
+// --- AC 6: 400 for invalid/missing request bodies ---
+
+test('[Story 4.1 AC6] POST /todos without text field returns 400', async () => {
+  const response = await server.inject({
+    method: 'POST',
+    url: '/todos',
+    payload: {},
+  });
+  expect(response.statusCode).toBe(400);
+});
+
+test('[Story 4.1 AC6] POST /todos with whitespace-only text returns 400', async () => {
+  const response = await server.inject({
+    method: 'POST',
+    url: '/todos',
+    payload: { text: '   ' },
+  });
+  expect(response.statusCode).toBe(400);
+  expect(response.json()).toEqual({ error: 'text must be a non-empty string' });
+});
+
+test('[Story 4.1 AC6] PATCH /todos/:id with empty body {} returns 400', async () => {
+  const todo = await prisma.todo.create({
+    data: { text: 'ac6-empty-patch', status: 'todo' },
+  });
+  const response = await server.inject({
+    method: 'PATCH',
+    url: `/todos/${todo.id}`,
+    payload: {},
+  });
+  expect(response.statusCode).toBe(400);
+});
+
+test('[Story 4.1 AC6] PATCH /todos/:id with non-numeric id returns 400', async () => {
+  const response = await server.inject({
+    method: 'PATCH',
+    url: '/todos/not-a-number',
+    payload: { status: 'todo' },
+  });
+  expect(response.statusCode).toBe(400);
+  expect(response.json()).toEqual({ error: 'invalid id' });
+});
+
+test('[Story 4.1 AC6] DELETE /todos/:id with non-numeric id returns 400', async () => {
+  const response = await server.inject({
+    method: 'DELETE',
+    url: '/todos/not-a-number',
+  });
+  expect(response.statusCode).toBe(400);
+  expect(response.json()).toEqual({ error: 'invalid id' });
+});
