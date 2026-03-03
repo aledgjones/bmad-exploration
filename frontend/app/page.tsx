@@ -1,25 +1,49 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import NewTodoForm from './components/NewTodoForm';
 import TodoList from './components/TodoList';
 import Spinner from './components/Spinner';
+import Toast from './components/Toast';
 import type { Todo } from '../src/api/todos';
 import { fetchTodos, createTodo, updateTodoStatus, updateTodoText, deleteTodo, type TodoStatus } from '../src/api/todos';
 
 export default function Home() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [toasts, setToasts] = useState<{ id: number; message: string }[]>([]);
+  const toastIdRef = useRef(0);
 
-  useEffect(() => {
+  const showToast = useCallback((message: string) => {
+    const id = ++toastIdRef.current;
+    setToasts((prev) => {
+      const next = [...prev, { id, message }];
+      return next.slice(-3);
+    });
+  }, []);
+
+  // useCallback with [] so the reference is stable across renders —
+  // prevents Toast's useEffect([onDismiss]) from restarting the auto-dismiss timer
+  const dismissToast = useCallback((id: number) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
+
+  const loadTodos = useCallback(() => {
+    setLoading(true);
+    setError(null);
     fetchTodos()
       .then((list) => setTodos(list))
       .catch((err) => {
         console.error('failed to load todos', err);
-        alert('Unable to load todos. Is the backend running?');
+        setError('Unable to load todos. Is the backend running?');
       })
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    loadTodos();
+  }, [loadTodos]);
 
   const handleAdd = async (text: string) => {
     try {
@@ -27,7 +51,7 @@ export default function Home() {
       setTodos((prev) => [newItem, ...prev]);
     } catch (err: any) {
       console.error('error creating todo', err);
-      alert('Unable to add todo. Is the backend running?');
+      showToast('Unable to add todo. Is the backend running?');
       // rethrow so caller (NewTodoForm) knows the submission failed and can
       // avoid clearing the input
       throw err;
@@ -54,7 +78,7 @@ export default function Home() {
       );
     } catch (err: any) {
       console.error('status update failed', err);
-      alert('Unable to update status');
+      showToast('Unable to update status');
       if (previousStatus !== undefined) {
         setTodos((prev) =>
           prev.map((t) => (t.id === id ? { ...t, status: previousStatus! } : t)),
@@ -74,7 +98,7 @@ export default function Home() {
     } catch (err: any) {
       console.error('delete failed', err);
       setTodos(previousTodos);
-      alert('Unable to delete todo');
+      showToast('Unable to delete todo');
     }
   };
 
@@ -96,7 +120,7 @@ export default function Home() {
       );
     } catch (err: any) {
       console.error('edit failed', err);
-      alert('Unable to update todo');
+      showToast('Unable to update todo');
       if (previousText !== undefined) {
         setTodos((prev) =>
           prev.map((t) => (t.id === id ? { ...t, text: previousText! } : t)),
@@ -119,9 +143,25 @@ export default function Home() {
           <div className="mt-8 w-full flex justify-center">
             <Spinner label="Loading todos" />
           </div>
+        ) : error ? (
+          <div className="mt-8 w-full flex flex-col items-center py-12 text-center" role="alert" data-testid="error-state">
+            <span className="text-4xl mb-3">⚠️</span>
+            <p className="text-lg font-medium text-destructive">{error}</p>
+            <button
+              onClick={loadTodos}
+              className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:opacity-90 cursor-pointer"
+              aria-label="Retry loading todos"
+            >
+              Retry
+            </button>
+          </div>
         ) : (
           <TodoList todos={todos} onStatusChange={handleStatusChange} onDelete={handleDelete} onEdit={handleEdit} />
         )}
+        {toasts.map((t) => (
+          // pass stable dismissToast + id as separate prop so Toast's effect deps stay stable
+          <Toast key={t.id} id={t.id} message={t.message} onDismiss={dismissToast} />
+        ))}
       </main>
     </div>
   );

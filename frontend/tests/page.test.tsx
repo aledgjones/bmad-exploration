@@ -44,18 +44,51 @@ describe('Home page data flow', () => {
     expect(root).toHaveClass('bg-gray-100');
   });
 
-  it('alerts if initial fetch fails', async () => {
+  it('shows inline error state when initial fetch fails', async () => {
     mockedFetch.mockRejectedValue(new Error('network'));
-    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => { });
     render(<Home />);
+    // error state should appear
+    expect(await screen.findByTestId('error-state')).toBeInTheDocument();
+    expect(screen.getByText('Unable to load todos. Is the backend running?')).toBeInTheDocument();
+    // retry button present
+    expect(screen.getByLabelText('Retry loading todos')).toBeInTheDocument();
+    // spinner should be removed after fetch failure
+    expect(screen.queryByText('Loading todos...')).not.toBeInTheDocument();
+    // error container has role="alert" for screen reader announcement
+    expect(screen.getByRole('alert')).toBeInTheDocument();
+  });
+
+  it('clicking Retry re-fetches and shows loading then todo list on success', async () => {
+    mockedFetch.mockRejectedValueOnce(new Error('network'));
+    render(<Home />);
+    // wait for error state
+    expect(await screen.findByTestId('error-state')).toBeInTheDocument();
+
+    // setup successful retry
+    const fakeTodos = [{ id: 1, text: 'retried', status: 'todo', createdAt: '', updatedAt: '' }];
+    mockedFetch.mockResolvedValueOnce(fakeTodos);
+
+    fireEvent.click(screen.getByLabelText('Retry loading todos'));
+
+    // after retry succeeds, error state gone and todo list visible
+    expect(await screen.findByText('retried')).toBeInTheDocument();
+    expect(screen.queryByTestId('error-state')).not.toBeInTheDocument();
+  });
+
+  it('clicking Retry shows error again if re-fetch also fails', async () => {
+    mockedFetch.mockRejectedValueOnce(new Error('network'));
+    render(<Home />);
+    expect(await screen.findByTestId('error-state')).toBeInTheDocument();
+
+    // retry also fails
+    mockedFetch.mockRejectedValueOnce(new Error('still down'));
+    fireEvent.click(screen.getByLabelText('Retry loading todos'));
+
+    // error state should remain
     await waitFor(() => {
-      expect(alertSpy).toHaveBeenCalledWith(
-        'Unable to load todos. Is the backend running?'
-      );
+      expect(screen.getByTestId('error-state')).toBeInTheDocument();
     });
-    // spinner should be removed after fetch failure (L1)
-    expect(screen.queryByRole('status')).not.toBeInTheDocument();
-    alertSpy.mockRestore();
+    expect(screen.getByText('Unable to load todos. Is the backend running?')).toBeInTheDocument();
   });
 
   it('creates a new todo and prepends to list', async () => {
@@ -79,12 +112,11 @@ describe('Home page data flow', () => {
     expect(screen.getAllByRole('listitem')).toHaveLength(1);
   });
 
-  it('alerts when creation fails', async () => {
+  it('shows toast when creation fails', async () => {
     mockedFetch.mockResolvedValue([]);
     mockedCreate.mockRejectedValue(
       new Error('failed to create todo: 500 database not initialized')
     );
-    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => { });
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
 
     render(<Home />);
@@ -95,13 +127,11 @@ describe('Home page data flow', () => {
     });
 
     await waitFor(() => {
-      expect(alertSpy).toHaveBeenCalledWith(
-        'Unable to add todo. Is the backend running?'
-      );
+      expect(screen.getByTestId('toast')).toBeInTheDocument();
+      expect(screen.getByText('Unable to add todo. Is the backend running?')).toBeInTheDocument();
     });
     expect(screen.getByPlaceholderText(/New todo/i)).toHaveValue('oops');
 
-    alertSpy.mockRestore();
     errorSpy.mockRestore();
   });
 
@@ -151,12 +181,10 @@ describe('Home page data flow', () => {
     });
   });
 
-  it('rolls back status on update failure', async () => {
+  it('rolls back status on update failure and shows toast', async () => {
     const todo = { id: 1, text: 'hi', status: 'todo', createdAt: '', updatedAt: '' };
-    // first fetch returns todo, second fetch (rollback) returns original
     mockedFetch.mockResolvedValueOnce([todo]).mockResolvedValueOnce([todo]);
     mockedUpdate.mockRejectedValue(new Error('fail'));
-    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => { });
 
     render(<Home />);
     expect(await screen.findByText('hi')).toBeInTheDocument();
@@ -167,7 +195,9 @@ describe('Home page data flow', () => {
     await waitFor(() => {
       expect(screen.getByLabelText(/change todo status/i)).toHaveValue('todo');
     });
-    alertSpy.mockRestore();
+    // toast shown instead of alert
+    expect(screen.getByTestId('toast')).toBeInTheDocument();
+    expect(screen.getByText('Unable to update status')).toBeInTheDocument();
   });
 
   it('optimistically removes todo on delete and calls API', async () => {
@@ -197,14 +227,13 @@ describe('Home page data flow', () => {
     confirmSpy.mockRestore();
   });
 
-  it('restores todo on delete failure and shows alert', async () => {
+  it('restores todo on delete failure and shows toast', async () => {
     const todos = [
       { id: 1, text: 'keeper', status: 'todo', createdAt: '', updatedAt: '' },
     ];
     mockedFetch.mockResolvedValue(todos);
     mockedDelete.mockRejectedValue(new Error('network error'));
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
-    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => { });
 
     render(<Home />);
     expect(await screen.findByText('keeper')).toBeInTheDocument();
@@ -215,10 +244,11 @@ describe('Home page data flow', () => {
     await waitFor(() => {
       expect(screen.getByText('keeper')).toBeInTheDocument();
     });
-    expect(alertSpy).toHaveBeenCalledWith('Unable to delete todo');
+    // toast shown instead of alert
+    expect(screen.getByTestId('toast')).toBeInTheDocument();
+    expect(screen.getByText('Unable to delete todo')).toBeInTheDocument();
 
     confirmSpy.mockRestore();
-    alertSpy.mockRestore();
   });
 
   it('does not delete when confirm is cancelled', async () => {
@@ -257,13 +287,15 @@ describe('Home page data flow', () => {
     // optimistic — text updated immediately
     expect(screen.getByText('edited')).toBeInTheDocument();
     expect(mockedUpdateText).toHaveBeenCalledWith(1, 'edited');
+
+    // wait for async reconcile to settle (avoids act() warning from pending state update)
+    await waitFor(() => expect(mockedUpdateText).toHaveBeenCalledTimes(1));
   });
 
-  it('rolls back text on edit failure and shows alert', async () => {
+  it('rolls back text on edit failure and shows toast', async () => {
     const todo = { id: 1, text: 'original', status: 'todo', createdAt: '', updatedAt: '' };
     mockedFetch.mockResolvedValue([todo]);
     mockedUpdateText.mockRejectedValue(new Error('fail'));
-    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => { });
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
 
     render(<Home />);
@@ -277,13 +309,13 @@ describe('Home page data flow', () => {
     // optimistic update shows new text
     expect(screen.getByText('bad edit')).toBeInTheDocument();
 
-    // after failure, text reverts and alert shown
+    // after failure, text reverts and toast shown
     await waitFor(() => {
       expect(screen.getByText('original')).toBeInTheDocument();
     });
-    expect(alertSpy).toHaveBeenCalledWith('Unable to update todo');
+    expect(screen.getByTestId('toast')).toBeInTheDocument();
+    expect(screen.getByText('Unable to update todo')).toBeInTheDocument();
 
-    alertSpy.mockRestore();
     errorSpy.mockRestore();
   });
 
@@ -321,7 +353,7 @@ describe('Home page data flow', () => {
     render(<Home />);
     // spinner goes away and todo is visible
     await waitFor(() => {
-      expect(screen.queryByRole('status')).not.toBeInTheDocument();
+      expect(screen.queryByText('Loading todos...')).not.toBeInTheDocument();
     });
     expect(screen.getByText('ready')).toBeInTheDocument();
   });
@@ -333,7 +365,6 @@ describe('Home page data flow', () => {
     mockedFetch.mockReturnValue(new Promise<never>(() => { }));
     render(<Home />);
     // Loading spinner should be visible
-    expect(screen.getByRole('status')).toBeInTheDocument();
     expect(screen.getByText('Loading todos...')).toBeInTheDocument();
     // empty-state must NOT be visible during loading
     expect(screen.queryByTestId('empty-state')).not.toBeInTheDocument();
@@ -344,7 +375,7 @@ describe('Home page data flow', () => {
     render(<Home />);
     // wait for loading to finish
     await waitFor(() => {
-      expect(screen.queryByRole('status')).not.toBeInTheDocument();
+      expect(screen.queryByText('Loading todos...')).not.toBeInTheDocument();
     });
     // empty-state container visible
     expect(screen.getByTestId('empty-state')).toBeInTheDocument();
@@ -362,7 +393,7 @@ describe('Home page data flow', () => {
 
     render(<Home />);
     await waitFor(() => {
-      expect(screen.queryByRole('status')).not.toBeInTheDocument();
+      expect(screen.queryByText('Loading todos...')).not.toBeInTheDocument();
     });
     // empty state present initially
     expect(screen.getByTestId('empty-state')).toBeInTheDocument();

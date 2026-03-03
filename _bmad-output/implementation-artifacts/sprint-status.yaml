@@ -55,10 +55,10 @@ development_status:
   2-4-mark-a-todo-item-as-complete: done
   2-5-delete-a-todo-item: done
   2-6-edit-the-text-of-an-existing-todo: done
-  2-7-show-completed-tasks-visually-distinguished-from-active: review
+  2-7-show-completed-tasks-visually-distinguished-from-active: done
   2-8-display-sensible-empty-state-messaging: done
   2-9-show-loading-indicators-during-data-operations: done
-  2-10-display-an-error-state-with-retry-options: ready-for-dev
+  2-10-display-an-error-state-with-retry-options: done
   2-11-reflect-user-interactions-instantly-without-page-reload: ready-for-dev
   2-12-core-actions-work-without-onboarding-or-help-text: ready-for-dev
   epic-2-retrospective: optional
