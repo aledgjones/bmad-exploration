@@ -622,3 +622,116 @@ test('direct handler invocation exercises trim, create/get and patch error paths
   expect(reply8.code).toHaveBeenCalledWith(400);
   expect(reply8.send).toHaveBeenCalledWith({ error: 'invalid id' });
 });
+
+// --- Story 3.1: POST→GET round-trip persistence tests ---
+
+test('POST /todos then GET /todos returns the persisted todo (round-trip)', async () => {
+  const server = Fastify();
+  await server.register(app, options);
+  await server.ready();
+
+  // ensure a clean slate so the assertion is deterministic
+  await prisma.todo.deleteMany();
+
+  const postRes = await server.inject({
+    method: 'POST',
+    url: '/todos',
+    payload: { text: 'persist me' },
+  });
+  expect(postRes.statusCode).toBe(201);
+  const created = postRes.json();
+  // POST must return an id and a createdAt timestamp (AC verification)
+  expect(created.id).toBeDefined();
+  expect(created.createdAt).toBeDefined();
+  expect(created.createdAt).not.toBeNull();
+
+  // confirm the item appears in a subsequent GET
+  const getRes = await server.inject({ method: 'GET', url: '/todos' });
+  expect(getRes.statusCode).toBe(200);
+  const list = getRes.json();
+  expect(
+    list.some((t: any) => t.id === created.id && t.text === 'persist me'),
+  ).toBe(true);
+
+  await server.close();
+});
+
+// --- Story 3.2: mutation→GET round-trip tests ---
+
+test('PATCH status then GET /todos shows updated status in list', async () => {
+  const server = Fastify();
+  await server.register(app, options);
+  await server.ready();
+
+  const created = await prisma.todo.create({
+    data: { text: 'status-persist', status: 'todo' },
+  });
+
+  const patchRes = await server.inject({
+    method: 'PATCH',
+    url: `/todos/${created.id}`,
+    payload: { status: 'done' },
+  });
+  expect(patchRes.statusCode).toBe(200);
+
+  // verify the change is visible via GET /todos
+  const getRes = await server.inject({ method: 'GET', url: '/todos' });
+  expect(getRes.statusCode).toBe(200);
+  const list = getRes.json();
+  const found = list.find((t: any) => t.id === created.id);
+  expect(found?.status).toBe('done');
+  // completedAt must be set when status is done
+  expect(found?.completedAt).not.toBeNull();
+
+  await server.close();
+});
+
+test('PATCH text then GET /todos shows updated text in list', async () => {
+  const server = Fastify();
+  await server.register(app, options);
+  await server.ready();
+
+  const created = await prisma.todo.create({
+    data: { text: 'text-persist', status: 'todo' },
+  });
+
+  const patchRes = await server.inject({
+    method: 'PATCH',
+    url: `/todos/${created.id}`,
+    payload: { text: 'updated-text' },
+  });
+  expect(patchRes.statusCode).toBe(200);
+
+  // verify the change is reflected in GET /todos
+  const getRes = await server.inject({ method: 'GET', url: '/todos' });
+  expect(getRes.statusCode).toBe(200);
+  const list = getRes.json();
+  const found = list.find((t: any) => t.id === created.id);
+  expect(found?.text).toBe('updated-text');
+
+  await server.close();
+});
+
+test('DELETE then GET /todos confirms todo no longer in list', async () => {
+  const server = Fastify();
+  await server.register(app, options);
+  await server.ready();
+
+  const created = await prisma.todo.create({
+    data: { text: 'delete-persist', status: 'todo' },
+  });
+
+  const delRes = await server.inject({
+    method: 'DELETE',
+    url: `/todos/${created.id}`,
+  });
+  expect(delRes.statusCode).toBe(204);
+
+  // verify item is absent from GET /todos
+  const getRes = await server.inject({ method: 'GET', url: '/todos' });
+  expect(getRes.statusCode).toBe(200);
+  const list = getRes.json();
+  expect(list.some((t: any) => t.id === created.id)).toBe(false);
+
+  await server.close();
+});
