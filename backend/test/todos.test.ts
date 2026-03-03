@@ -823,3 +823,185 @@ test('[Story 4.1 AC6] DELETE /todos/:id with non-numeric id returns 400', async 
   expect(response.statusCode).toBe(400);
   expect(response.json()).toEqual({ error: 'invalid id' });
 });
+
+// =============================================================================
+// Story 4.2 Metadata Verification Tests
+// Confirms every API response includes the full metadata envelope:
+//   createdAt, updatedAt, status, completedAt
+// =============================================================================
+
+// --- AC 1: GET /todos items include createdAt (ISO-8601) and status ---
+
+test('[Story 4.2 AC1] GET /todos items include createdAt as ISO-8601 string and status field', async () => {
+  await prisma.todo.deleteMany();
+  await prisma.todo.create({ data: { text: 'meta-check', status: 'todo' } });
+
+  const res = await server.inject({ method: 'GET', url: '/todos' });
+  expect(res.statusCode).toBe(200);
+  const list = res.json();
+  expect(list.length).toBeGreaterThan(0);
+  const item = list[0];
+
+  // createdAt must be present and a valid ISO-8601 string
+  expect(item).toHaveProperty('createdAt');
+  expect(item.createdAt).not.toBeNull();
+  expect(new Date(item.createdAt).toISOString()).toBe(item.createdAt);
+
+  // status must be present
+  expect(item).toHaveProperty('status');
+
+  // completedAt must be null for a todo-status item
+  expect(item.completedAt).toBeNull();
+});
+
+test('[Story 4.2 AC1] GET /todos items have status value from allowed enum set', async () => {
+  await prisma.todo.deleteMany();
+  await prisma.todo.create({
+    data: { text: 'allowed-status', status: 'in_progress' },
+  });
+
+  const res = await server.inject({ method: 'GET', url: '/todos' });
+  expect(res.statusCode).toBe(200);
+  const list = res.json();
+  expect(list.length).toBeGreaterThan(0);
+
+  const allowedStatuses = ['todo', 'in_progress', 'done'];
+  for (const item of list) {
+    expect(allowedStatuses).toContain(item.status);
+  }
+});
+
+// --- AC 2: POST /todos response includes all metadata fields ---
+
+test('[Story 4.2 AC2] POST /todos response includes id, text, status, createdAt, updatedAt', async () => {
+  const res = await server.inject({
+    method: 'POST',
+    url: '/todos',
+    payload: { text: '4.2-meta-post' },
+  });
+  expect(res.statusCode).toBe(201);
+  const body = res.json();
+
+  expect(body).toHaveProperty('id');
+  expect(typeof body.id).toBe('number');
+  expect(body.text).toBe('4.2-meta-post');
+  expect(body.status).toBe('todo');
+
+  // createdAt — must be a valid ISO-8601 string
+  expect(body).toHaveProperty('createdAt');
+  expect(body.createdAt).not.toBeNull();
+  expect(new Date(body.createdAt).toISOString()).toBe(body.createdAt);
+
+  // updatedAt — must be a valid ISO-8601 string
+  expect(body).toHaveProperty('updatedAt');
+  expect(body.updatedAt).not.toBeNull();
+  expect(new Date(body.updatedAt).toISOString()).toBe(body.updatedAt);
+});
+
+// --- AC 3: PATCH /todos/:id response includes updated updatedAt ---
+
+test('[Story 4.2 AC3] PATCH /todos/:id updatedAt changes after a patch', async () => {
+  const created = await prisma.todo.create({
+    data: { text: '4.2-updatedAt', status: 'todo' },
+  });
+  const originalUpdatedAt = created.updatedAt.toISOString();
+
+  // Small delay so the new updatedAt timestamp is guaranteed to differ
+  await new Promise((r) => setTimeout(r, 50));
+
+  const res = await server.inject({
+    method: 'PATCH',
+    url: `/todos/${created.id}`,
+    payload: { status: 'in_progress' },
+  });
+  expect(res.statusCode).toBe(200);
+  const body = res.json();
+
+  expect(body).toHaveProperty('updatedAt');
+  expect(body.updatedAt).not.toBeNull();
+  // updatedAt must have been bumped
+  expect(body.updatedAt).not.toBe(originalUpdatedAt);
+  // Must still be a valid ISO-8601 string
+  expect(new Date(body.updatedAt).toISOString()).toBe(body.updatedAt);
+});
+
+test('[Story 4.2 AC3] PATCH /todos/:id response includes correct status and text after update', async () => {
+  const created = await prisma.todo.create({
+    data: { text: '4.2-patch-fields', status: 'todo' },
+  });
+
+  const res = await server.inject({
+    method: 'PATCH',
+    url: `/todos/${created.id}`,
+    payload: { text: '4.2-patch-fields-updated', status: 'in_progress' },
+  });
+  expect(res.statusCode).toBe(200);
+  const body = res.json();
+
+  expect(body.text).toBe('4.2-patch-fields-updated');
+  expect(body.status).toBe('in_progress');
+  expect(body).toHaveProperty('createdAt');
+  expect(body).toHaveProperty('updatedAt');
+});
+
+// --- AC 4 & 5: completedAt null/non-null semantics ---
+
+test('[Story 4.2 AC5] POST /todos creates todo with completedAt null', async () => {
+  const res = await server.inject({
+    method: 'POST',
+    url: '/todos',
+    payload: { text: '4.2-completedAt-null' },
+  });
+  expect(res.statusCode).toBe(201);
+  const body = res.json();
+  expect(body.status).toBe('todo');
+  // completedAt must be null for a freshly created todo
+  expect(body.completedAt).toBeNull();
+});
+
+test('[Story 4.2 AC4] PATCH to done sets completedAt to a non-null ISO-8601 timestamp', async () => {
+  const created = await prisma.todo.create({
+    data: { text: '4.2-completedAt-set', status: 'todo' },
+  });
+
+  const res = await server.inject({
+    method: 'PATCH',
+    url: `/todos/${created.id}`,
+    payload: { status: 'done' },
+  });
+  expect(res.statusCode).toBe(200);
+  const body = res.json();
+
+  expect(body.status).toBe('done');
+  expect(body.completedAt).not.toBeNull();
+  // Must be a valid ISO-8601 string
+  expect(new Date(body.completedAt).toISOString()).toBe(body.completedAt);
+});
+
+test('[Story 4.2 AC5] PATCH from done back to todo clears completedAt to null', async () => {
+  // Start as done with completedAt set
+  const created = await prisma.todo.create({
+    data: {
+      text: '4.2-completedAt-clear',
+      status: 'done',
+      completedAt: new Date(),
+    },
+  });
+
+  const res = await server.inject({
+    method: 'PATCH',
+    url: `/todos/${created.id}`,
+    payload: { status: 'todo' },
+  });
+  expect(res.statusCode).toBe(200);
+  const body = res.json();
+
+  expect(body.status).toBe('todo');
+  expect(body.completedAt).toBeNull();
+
+  // Double-check via GET /todos
+  const getRes = await server.inject({ method: 'GET', url: '/todos' });
+  const list = getRes.json();
+  const found = list.find((t: any) => t.id === created.id);
+  expect(found?.completedAt).toBeNull();
+});

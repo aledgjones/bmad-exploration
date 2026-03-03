@@ -1,6 +1,6 @@
 # Story 4.2: Include metadata in API responses
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -32,19 +32,19 @@ So that I can display rich information.
 
 ## Tasks / Subtasks
 
-- [ ] Verify `GET /todos` response objects include `createdAt` and `status` (AC: 1)
-  - [ ] Confirm `createdAt` is an ISO-8601 formatted string (not null)
-  - [ ] Confirm `status` is one of `todo | in_progress | done`
-- [ ] Verify `POST /todos` response includes metadata fields (AC: 2)
-  - [ ] `id`, `text`, `status`, `createdAt`, `updatedAt` all present
-- [ ] Verify `PATCH /todos/:id` response includes updated metadata (AC: 3)
-  - [ ] `updatedAt` changes after a PATCH
-- [ ] Verify `completedAt` is set for `done` todos and null otherwise (AC: 4, 5)
-  - [ ] POST → status `todo` → `completedAt` is null
-  - [ ] PATCH to `done` → `completedAt` is non-null ISO timestamp
-  - [ ] PATCH from `done` back to `todo` → `completedAt` is null again
-- [ ] Add Vitest integration tests in `backend/test/todos.test.ts` labelled Story 4.2
-- [ ] Maintain 90% coverage threshold
+- [x] Verify `GET /todos` response objects include `createdAt` and `status` (AC: 1)
+  - [x] Confirm `createdAt` is an ISO-8601 formatted string (not null)
+  - [x] Confirm `status` is one of `todo | in_progress | done`
+- [x] Verify `POST /todos` response includes metadata fields (AC: 2)
+  - [x] `id`, `text`, `status`, `createdAt`, `updatedAt` all present
+- [x] Verify `PATCH /todos/:id` response includes updated metadata (AC: 3)
+  - [x] `updatedAt` changes after a PATCH
+- [x] Verify `completedAt` is set for `done` todos and null otherwise (AC: 4, 5)
+  - [x] POST → status `todo` → `completedAt` is null
+  - [x] PATCH to `done` → `completedAt` is non-null ISO timestamp
+  - [x] PATCH from `done` back to `todo` → `completedAt` is null again
+- [x] Add Vitest integration tests in `backend/test/todos.test.ts` labelled Story 4.2
+- [x] Maintain 90% coverage threshold
 
 ## Dev Notes
 
@@ -130,6 +130,26 @@ Claude Sonnet 4.6
 
 ### Debug Log References
 
+None — no implementation changes required; all metadata fields already present in routes.
+
 ### Completion Notes List
 
+- Verification-only story: no source code changes needed. All Prisma fields (`createdAt`, `updatedAt`, `status`, `completedAt`) are returned unfiltered by Fastify routes.
+- Added 8 Story 4.2 labelled integration tests in `backend/test/todos.test.ts` covering all 5 ACs:
+  - AC1: `createdAt` ISO-8601 format, `status` from allowed enum, `completedAt` null for non-done
+  - AC2: POST response contains `id`, `text`, `status`, `createdAt`, `updatedAt`
+  - AC3: `updatedAt` changes after PATCH; response contains correct `status` and `text`
+  - AC4: PATCH to `done` sets `completedAt` to valid ISO-8601 timestamp
+  - AC5: POST creates with null `completedAt`; PATCH from `done` back to `todo` clears `completedAt`
+- Full suite: 55 tests pass, 3 skipped (pre-existing skips), zero regressions.
+- Coverage maintained above 90% threshold (no new src/ branches added).
+
 ### File List
+
+- `backend/test/todos.test.ts` (modified — added Story 4.2 tests)
+
+## Change Log
+
+| Date       | Change                                                                                                                                                                                                                          |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-03-03 | Added 8 Story 4.2 integration tests in `backend/test/todos.test.ts` verifying metadata fields (createdAt, updatedAt, status, completedAt) across all endpoints. No source code changes required. Story marked ready for review. |
