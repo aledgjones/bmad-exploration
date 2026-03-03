@@ -22,8 +22,8 @@ services:
 
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile
     # use default CMD from Dockerfile (node dist/app.js) so we avoid fastify-cli issues
     ports:
       - "${BACKEND_PORT:-4000}:4000"
@@ -41,8 +41,8 @@ services:
 
   frontend:
     build:
-      context: ./frontend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: frontend/Dockerfile
       args:
         BACKEND_URL: "http://backend:4000"
     ports:

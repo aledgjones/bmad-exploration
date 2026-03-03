@@ -4,18 +4,22 @@ WORKDIR /app
 
 RUN apk add --no-cache curl openssl
 
-# install all dependencies (including devDependencies for TS compile)
-COPY package.json ./
-RUN npm install
+# Workspace manifests – enables deterministic npm ci with the root lockfile
+COPY package.json package-lock.json ./
+COPY backend/package.json ./backend/
+COPY frontend/package.json ./frontend/
 
-# copy source
-COPY . .
+# Install all dependencies (dev included for TS compile + Prisma generation)
+RUN npm ci
 
-# generate Prisma client using the locally-installed version (avoids npx pulling latest)
-RUN node_modules/.bin/prisma generate
+# Copy backend source
+COPY backend/ ./backend/
 
-# compile TypeScript → dist/
-RUN npm run build:ts
+# Generate Prisma client and compile TypeScript
+# npm run --workspace sets up node_modules/.bin PATH correctly for the workspace
+WORKDIR /app
+RUN npm run prisma:generate --workspace=backend
+RUN npm run build:ts --workspace=backend
 
 # ── Production stage ─────────────────────────────────────────────────────────
 FROM node:22-alpine AS production
@@ -23,18 +27,26 @@ WORKDIR /app
 
 RUN apk add --no-cache curl openssl
 
-# install production dependencies only
-COPY package.json ./
-RUN npm install --omit=dev
+# Install production dependencies only using the root lockfile
+COPY package.json package-lock.json ./
+COPY backend/package.json ./backend/
+COPY frontend/package.json ./frontend/
+RUN npm ci --omit=dev
 
-# copy compiled output and Prisma artefacts from build stage
-COPY --from=build /app/dist ./dist
-COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=build /app/node_modules/@prisma ./node_modules/@prisma
-COPY prisma ./prisma
+# Copy compiled output and Prisma artefacts from build stage
+# Prisma installs into the workspace-local node_modules (not hoisted to root)
+COPY --from=build /app/backend/dist ./backend/dist
+COPY --from=build /app/backend/node_modules/.prisma ./backend/node_modules/.prisma
+COPY --from=build /app/backend/node_modules/@prisma ./backend/node_modules/@prisma
+COPY backend/prisma ./backend/prisma
 
-# run as non-root built-in node user (uid 1000)
+WORKDIR /app/backend
+
+# Run as non-root built-in node user (uid 1000)
 USER node
+
+HEALTHCHECK --interval=10s --timeout=5s --retries=5 \
+    CMD curl -f http://127.0.0.1:4000/health || exit 1
 
 EXPOSE 4000
 

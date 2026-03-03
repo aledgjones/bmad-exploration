@@ -73,7 +73,7 @@ development_status:
   4-4-ensure-data-consistency-under-concurrent-requests: done
   epic-4-retrospective: optional
   epic-5: in-progress
-  5-1-production-ready-dockerfiles: review                  # AI
+  5-1-production-ready-dockerfiles: done                    # AI
   5-2-accessibility-audit: ready-for-dev                   # AI
   5-3-security-review: ready-for-dev                       # AI
   5-4-performance-report: ready-for-dev                    # Human
