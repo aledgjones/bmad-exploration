@@ -20,6 +20,12 @@ export default defineConfig({
       reportsDirectory: 'coverage',
       include: ['app/**/*.{ts,tsx,js}'],
       exclude: ['node_modules/', 'dist/'],
+      thresholds: {
+        lines: 80,
+        functions: 80,
+        branches: 80,
+        statements: 80,
+      },
     },
   },
 });

@@ -144,6 +144,55 @@ test('routes return 500 if prisma not initialized', async () => {
   expect(del.json()).toEqual({ error: 'database not initialized' });
 });
 
+test('todos route handles valid prisma: GET returns list, PATCH rejects bad id and whitespace text, DELETE succeeds', async () => {
+  // Uses the direct-import path so the todo routes are exercised against a
+  // non-null prisma instance, verifying handler logic beyond the prisma-guard early-return.
+  const localServer = Fastify();
+  const mockPrisma = {
+    todo: {
+      findMany: async () => [],
+      delete: async () => ({}),
+    },
+  };
+  // @ts-ignore
+  localServer.decorate('prisma', mockPrisma);
+  const todosRoute = (await import('../src/routes/todos')).default;
+  await localServer.register(todosRoute as any);
+  await localServer.ready();
+
+  // GET: non-null prisma → false branch on prisma guard → returns empty array
+  const getRes = await localServer.inject({ method: 'GET', url: '/todos' });
+  expect(getRes.statusCode).toBe(200);
+  expect(getRes.json()).toEqual([]);
+
+  // PATCH: non-numeric id → NaN branch true → 400
+  const nanIdRes = await localServer.inject({
+    method: 'PATCH',
+    url: '/todos/not-a-number',
+    payload: { status: 'todo' },
+  });
+  expect(nanIdRes.statusCode).toBe(400);
+  expect(nanIdRes.json()).toEqual({ error: 'invalid id' });
+
+  // PATCH: whitespace-only text → trimmed-empty branch true → 400 (no DB call)
+  const wsRes = await localServer.inject({
+    method: 'PATCH',
+    url: '/todos/1',
+    payload: { text: '   ' },
+  });
+  expect(wsRes.statusCode).toBe(400);
+  expect(wsRes.json()).toEqual({ error: 'text must be a non-empty string' });
+
+  // DELETE: successful delete → 204
+  const delRes = await localServer.inject({
+    method: 'DELETE',
+    url: '/todos/1',
+  });
+  expect(delRes.statusCode).toBe(204);
+
+  await localServer.close();
+});
+
 test('example route responds correctly', async () => {
   const server = Fastify();
   const exampleRoute = (await import('../src/routes/example/index')).default;
@@ -1174,4 +1223,18 @@ test('[Story 4.3] PATCH done→in_progress clears completedAt', async () => {
 
   const fromDb = await prisma.todo.findUnique({ where: { id: created.id } });
   expect(fromDb?.completedAt).toBeNull();
+});
+
+// ─── Utility route coverage ───────────────────────────────────────────────────
+
+test('GET /health returns status ok', async () => {
+  const res = await server.inject({ method: 'GET', url: '/health' });
+  expect(res.statusCode).toBe(200);
+  expect(res.json()).toEqual({ status: 'ok' });
+});
+
+test('GET / returns root true', async () => {
+  const res = await server.inject({ method: 'GET', url: '/' });
+  expect(res.statusCode).toBe(200);
+  expect(res.json()).toEqual({ root: true });
 });

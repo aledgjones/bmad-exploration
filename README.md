@@ -52,16 +52,17 @@ Additional commands will be added as services are scaffolded.
 
 ## Test Coverage
 
-Both frontend and backend are configured to collect coverage with Vitest using the v8 provider. Reports are written to each package's `coverage/` directory in JSON and text formats. A root-level helper script (`scripts/check-coverage.js`) aggregates the two reports (currently only **line** coverage) and fails with a non-zero exit code if the **combined line coverage** falls below **90%**. Branch/function metrics are ignored; adjusting the script or adding additional metrics is left as a follow-up.
+Both frontend and backend are configured to collect coverage with Vitest using the v8 provider. Each package enforces a **90% threshold** (lines, statements, functions, branches) natively via `coverage.thresholds` in its `vitest.config.ts` — Vitest will fail with a non-zero exit code if any metric falls below 90%.
 
-You can run the full flow with:
+You can run coverage for both packages with:
 
 ```bash
-# default threshold is 90%
-npm run coverage        # executes frontend & backend tests with coverage and enforces threshold
-
-# override threshold at runtime
-THRESHOLD=80 npm run coverage
+npm run coverage        # runs frontend & backend tests with coverage; fails if either drops below 90%
 ```
 
-The same check is invoked automatically by CI via the `coverage` script. For more fine‑grained control edit `scripts/check-coverage.js` or pass a custom threshold to the helper function in tests.
+To run a single package:
+
+```bash
+npm run coverage:frontend
+npm run coverage:backend
+```

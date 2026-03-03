@@ -18,6 +18,12 @@ export default defineConfig({
         'src/start.ts',
         'src/plugins/sensible.ts',
       ],
+      thresholds: {
+        lines: 80,
+        functions: 80,
+        branches: 80,
+        statements: 80,
+      },
     },
   },
 });
