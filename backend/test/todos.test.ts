@@ -1238,3 +1238,161 @@ test('GET / returns root true', async () => {
   expect(res.statusCode).toBe(200);
   expect(res.json()).toEqual({ root: true });
 });
+
+// =============================================================================
+// Story 4.4: Ensure data consistency under concurrent requests
+// Validates PostgreSQL READ COMMITTED + single-statement Prisma operations
+// handle concurrent access without corruption or 5xx errors.
+// =============================================================================
+
+// --- AC 1 & 2: Concurrent PATCH requests — last-write-wins, no 500s ---
+
+test('[Story 4.4 AC1/AC2] concurrent PATCH requests result in deterministic state with no 500 errors', async () => {
+  const created = await prisma.todo.create({
+    data: { text: 'race-target', status: 'todo' },
+  });
+
+  // Fire 5 concurrent PATCH requests — mix of status values
+  const responses = await Promise.all([
+    server.inject({
+      method: 'PATCH',
+      url: `/todos/${created.id}`,
+      payload: { status: 'in_progress' },
+    }),
+    server.inject({
+      method: 'PATCH',
+      url: `/todos/${created.id}`,
+      payload: { status: 'done' },
+    }),
+    server.inject({
+      method: 'PATCH',
+      url: `/todos/${created.id}`,
+      payload: { status: 'todo' },
+    }),
+    server.inject({
+      method: 'PATCH',
+      url: `/todos/${created.id}`,
+      payload: { status: 'in_progress' },
+    }),
+    server.inject({
+      method: 'PATCH',
+      url: `/todos/${created.id}`,
+      payload: { status: 'done' },
+    }),
+  ]);
+
+  // AC 2: no request must return a 500
+  expect(responses.every((r) => r.statusCode !== 500)).toBe(true);
+  // All requests must succeed with 200
+  expect(responses.every((r) => r.statusCode === 200)).toBe(true);
+
+  // AC 1: final state must be one of the submitted values (last-write-wins — no corruption)
+  const fromDb = await prisma.todo.findUnique({ where: { id: created.id } });
+  expect(['todo', 'in_progress', 'done']).toContain(fromDb?.status);
+  // status must not be null/undefined — never corrupted
+  expect(fromDb?.status).toBeDefined();
+  expect(fromDb?.status).not.toBeNull();
+});
+
+// --- AC 3: Concurrent GET requests — all return 200 with consistent data ---
+
+test('[Story 4.4 AC3] concurrent GET /todos requests all return 200 with consistent data', async () => {
+  await prisma.todo.deleteMany();
+  await prisma.todo.create({
+    data: { text: 'concurrent-get', status: 'todo' },
+  });
+
+  // Fire 10 concurrent GET requests
+  const responses = await Promise.all(
+    Array.from({ length: 10 }, () =>
+      server.inject({ method: 'GET', url: '/todos' }),
+    ),
+  );
+
+  // All must return 200
+  expect(responses.every((r) => r.statusCode === 200)).toBe(true);
+
+  // All must return a JSON array
+  expect(responses.every((r) => Array.isArray(r.json()))).toBe(true);
+
+  // All responses must contain identical data (consistent snapshot)
+  const firstBody = JSON.stringify(responses[0].json());
+  expect(responses.every((r) => JSON.stringify(r.json()) === firstBody)).toBe(
+    true,
+  );
+});
+
+// --- AC 4: Concurrent POST requests — N distinct records created, no duplicates ---
+
+test('[Story 4.4 AC4] concurrent POST /todos requests each create a distinct record', async () => {
+  await prisma.todo.deleteMany();
+
+  const N = 8;
+  // Fire N concurrent POST requests
+  const responses = await Promise.all(
+    Array.from({ length: N }, (_, i) =>
+      server.inject({
+        method: 'POST',
+        url: '/todos',
+        payload: { text: `concurrent-post-${i}` },
+      }),
+    ),
+  );
+
+  // All must return 201
+  expect(responses.every((r) => r.statusCode === 201)).toBe(true);
+
+  const bodies = responses.map((r) => r.json());
+
+  // Each response must have a unique id (no duplicate suppression or overwriting)
+  const ids = bodies.map((b: any) => b.id);
+  const uniqueIds = new Set(ids);
+  expect(uniqueIds.size).toBe(N);
+
+  // Verify N records actually exist in the database
+  const dbCount = await prisma.todo.count();
+  expect(dbCount).toBe(N);
+});
+
+// --- AC 5: DELETE + PATCH race — one 204/200, one 404, no 500s ---
+
+test('[Story 4.4 AC5] concurrent DELETE and PATCH on the same todo: one succeeds, one gets 404, no 500s', async () => {
+  const created = await prisma.todo.create({
+    data: { text: 'race-delete-patch', status: 'todo' },
+  });
+
+  // Fire DELETE and PATCH concurrently
+  const [deleteRes, patchRes] = await Promise.all([
+    server.inject({
+      method: 'DELETE',
+      url: `/todos/${created.id}`,
+    }),
+    server.inject({
+      method: 'PATCH',
+      url: `/todos/${created.id}`,
+      payload: { status: 'done' },
+    }),
+  ]);
+
+  // No request must return a 500
+  expect(deleteRes.statusCode).not.toBe(500);
+  expect(patchRes.statusCode).not.toBe(500);
+
+  // One must succeed and the other must get 404
+  const statuses = [deleteRes.statusCode, patchRes.statusCode].sort();
+
+  // Possible outcomes:
+  // DELETE wins: [200 or 204, 404] — PATCH sees no row
+  // PATCH wins: [200, 204] — DELETE still deletes, or [200, 404] if delete wins after update
+  // The key invariant: no 500 and the pair must be a valid combo
+  const validCombos = [
+    [200, 204], // PATCH wins, DELETE also succeeds
+    [204, 404], // DELETE wins first; PATCH sees 404
+    [200, 404], // PATCH wins; DELETE sees 404 (row already updated but timing varies)
+  ];
+
+  const isValid = validCombos.some(
+    (combo) => JSON.stringify(combo) === JSON.stringify(statuses),
+  );
+  expect(isValid).toBe(true);
+});

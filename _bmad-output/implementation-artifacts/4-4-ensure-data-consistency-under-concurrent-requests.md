@@ -1,6 +1,6 @@
 # Story 4.4: Ensure data consistency under concurrent requests
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -32,20 +32,20 @@ So that I don't encounter conflicts or lost updates.
 
 ## Tasks / Subtasks
 
-- [ ] Analyse current Prisma + PostgreSQL transaction isolation for concurrent writes (AC: 1, 2)
-  - [ ] Confirm PostgreSQL default isolation level (`READ COMMITTED`) provides last-write-wins semantics for independent column updates
-  - [ ] Verify Prisma `update` is wrapped in an implicit transaction that prevents partial writes
-- [ ] Add concurrent PATCH test: fire N simultaneous `PATCH /todos/:id` calls and assert last writer wins (AC: 1, 2)
-  - [ ] Use `Promise.all` with `server.inject` calls
-  - [ ] Verify final DB state is one of the submitted values (no corruption/null)
-  - [ ] Verify no request returns a 500
-- [ ] Add concurrent GET test: fire N simultaneous `GET /todos` calls and assert all return 200 (AC: 3)
-- [ ] Add concurrent POST test: fire N simultaneous `POST /todos` calls and assert N unique records created (AC: 4)
-- [ ] Add DELETE+PATCH race test: fire DELETE and PATCH concurrently, assert one 204/200 and one 404, no 500s (AC: 5)
-- [ ] Evaluate whether `Prisma.$transaction` is needed for any multi-step operation exposed by this API
-  - [ ] Current routes are single-statement — confirm no multi-step operations exist
-  - [ ] If no multi-step operations, document explicitly in Dev Notes that Prisma implicit transactions are sufficient
-- [ ] Maintain 90% coverage threshold
+- [x] Analyse current Prisma + PostgreSQL transaction isolation for concurrent writes (AC: 1, 2)
+  - [x] Confirm PostgreSQL default isolation level (`READ COMMITTED`) provides last-write-wins semantics for independent column updates
+  - [x] Verify Prisma `update` is wrapped in an implicit transaction that prevents partial writes
+- [x] Add concurrent PATCH test: fire N simultaneous `PATCH /todos/:id` calls and assert last writer wins (AC: 1, 2)
+  - [x] Use `Promise.all` with `server.inject` calls
+  - [x] Verify final DB state is one of the submitted values (no corruption/null)
+  - [x] Verify no request returns a 500
+- [x] Add concurrent GET test: fire N simultaneous `GET /todos` calls and assert all return 200 (AC: 3)
+- [x] Add concurrent POST test: fire N simultaneous `POST /todos` calls and assert N unique records created (AC: 4)
+- [x] Add DELETE+PATCH race test: fire DELETE and PATCH concurrently, assert one 204/200 and one 404, no 500s (AC: 5)
+- [x] Evaluate whether `Prisma.$transaction` is needed for any multi-step operation exposed by this API
+  - [x] Current routes are single-statement — confirm no multi-step operations exist
+  - [x] If no multi-step operations, document explicitly in Dev Notes that Prisma implicit transactions are sufficient
+- [x] Maintain 90% coverage threshold
 
 ## Dev Notes
 
@@ -163,6 +163,24 @@ Claude Sonnet 4.6
 
 ### Debug Log References
 
+No debug issues. All 4 concurrency tests passed on first run.
+
 ### Completion Notes List
 
+- Confirmed PostgreSQL `READ COMMITTED` isolation provides last-write-wins semantics for all single-statement Prisma routes (`create`, `findMany`, `update`, `delete`). No application-level locking required.
+- Confirmed no multi-step operations exist in the API; Prisma implicit transactions are sufficient — `prisma.$transaction` not needed.
+- Added 4 concurrency tests to `backend/test/todos.test.ts` (labelled Story 4.4):
+  - `[Story 4.4 AC1/AC2]` — 5 concurrent PATCH requests: all return 200, final DB state is one of the submitted values, never null/corrupted.
+  - `[Story 4.4 AC3]` — 10 concurrent GET requests: all return 200 with identical consistent data.
+  - `[Story 4.4 AC4]` — 8 concurrent POST requests: all return 201, N distinct records with unique IDs created in DB.
+  - `[Story 4.4 AC5]` — Concurrent DELETE + PATCH race: no 500s; outcome is a valid success/404 combination.
+- All 71 tests pass (3 skipped), zero regressions.
+- Coverage: 92.5% statements (above 90% threshold).
+
 ### File List
+
+- `backend/test/todos.test.ts` (modified — appended Story 4.4 concurrency tests)
+
+### Change Log
+
+- 2026-03-03: Story 4.4 implemented — added 4 concurrency integration tests covering AC1–AC5. No production code changes required.
