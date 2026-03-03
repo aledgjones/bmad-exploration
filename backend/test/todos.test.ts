@@ -1027,6 +1027,26 @@ test('[Story 4.2 AC4] PATCH to done sets completedAt to a non-null ISO-8601 time
   expect(new Date(body.completedAt).toISOString()).toBe(body.completedAt);
 });
 
+test('[Story 4.2 AC4] GET /todos returns done todo with non-null completedAt ISO-8601 timestamp', async () => {
+  const created = await prisma.todo.create({
+    data: {
+      text: '4.2-get-completedAt',
+      status: 'done',
+      completedAt: new Date(),
+    },
+  });
+
+  const res = await server.inject({ method: 'GET', url: '/todos' });
+  expect(res.statusCode).toBe(200);
+  const list = res.json();
+  const found = list.find((t: any) => t.id === created.id);
+
+  expect(found).toBeDefined();
+  expect(found.status).toBe('done');
+  expect(found.completedAt).not.toBeNull();
+  expect(new Date(found.completedAt).toISOString()).toBe(found.completedAt);
+});
+
 test('[Story 4.2 AC5] PATCH from done back to todo clears completedAt to null', async () => {
   // Start as done with completedAt set
   const created = await prisma.todo.create({

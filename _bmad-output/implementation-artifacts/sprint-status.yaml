@@ -66,9 +66,9 @@ development_status:
   3-1-backend-stores-todos-reliably: done
   3-2-auto-save-changes-to-prevent-data-loss: done
   epic-3-retrospective: optional
-  epic-4: in-progress
-  4-1-provide-crud-endpoints-for-todos: review
-  4-2-include-metadata-in-api-responses: review
-  4-3-support-state-updates-via-single-patch-endpoint: review
-  4-4-ensure-data-consistency-under-concurrent-requests: review
+  epic-4: done
+  4-1-provide-crud-endpoints-for-todos: done
+  4-2-include-metadata-in-api-responses: done
+  4-3-support-state-updates-via-single-patch-endpoint: done
+  4-4-ensure-data-consistency-under-concurrent-requests: done
   epic-4-retrospective: optional
