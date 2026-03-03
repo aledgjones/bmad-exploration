@@ -13,7 +13,7 @@ async function run() {
       // use spawnSync to ensure CLI output is visible
       const { spawnSync } = await import('node:child_process');
       server.log.info('running prisma migrate deploy');
-      const res = spawnSync('npx', ['prisma', 'migrate', 'deploy'], {
+      const res = spawnSync('node_modules/.bin/prisma', ['migrate', 'deploy'], {
         stdio: 'inherit',
         env: process.env,
       });
