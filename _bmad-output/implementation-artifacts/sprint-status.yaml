@@ -76,7 +76,7 @@ development_status:
   5-1-production-ready-dockerfiles: done                    # AI
   5-2-accessibility-audit: done                          # AI
   5-3-security-review: review                               # AI
-  5-4-performance-report: ready-for-dev                    # Human
+  5-4-performance-report: review                      # Human
   5-5-ai-integration-log: ready-for-dev                    # Human
   5-6-qa-summary-report: ready-for-dev                     # AI (depends on 5.2, 5.3, 5.4)
   5-7-bmad-methodology-doc: ready-for-dev                  # Human
