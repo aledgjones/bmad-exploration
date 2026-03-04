@@ -1,7 +1,22 @@
 # Story 5.7: BMAD methodology documentation
 
-Status: ready-for-dev
+Status: done
 Assignee: Human (Aled)
+
+## Dev Agent Record
+
+**Completed:** 2026-03-04  
+**Implemented by:** Amelia (Dev Agent)
+
+### Completion Notes
+
+- Created `docs/bmad-methodology.md` covering all 6 required sections
+- Content drawn from Aled's project notes and the full artifact trail in `_bmad-output/`
+- Sections: Overview, Phases Used, Agents Used, Artifacts Produced, What Worked Well, What Was Challenging
+
+### File List
+
+- `docs/bmad-methodology.md` — created
 
 ## Story
 

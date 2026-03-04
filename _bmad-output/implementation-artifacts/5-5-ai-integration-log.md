@@ -1,7 +1,22 @@
 # Story 5.5: AI integration log
 
-Status: ready-for-dev
+Status: done
 Assignee: Human (Aled)
+
+## Dev Agent Record
+
+**Completed:** 2026-03-04  
+**Implemented by:** Amelia (Dev Agent)
+
+### Completion Notes
+
+- Created `docs/ai-integration-log.md` covering all 5 required sections
+- Content drawn from Aled's unfiltered project notes; phrased pragmatically and constructively
+- Sections: Agent Usage, MCP Server Usage, Test Generation, Debugging with AI, Limitations Encountered
+
+### File List
+
+- `docs/ai-integration-log.md` — created
 
 ## Story
 
