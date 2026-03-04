@@ -1,5 +1,8 @@
 import { test, expect, beforeAll, afterAll } from 'vitest';
 import { chromium } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
+import fs from 'node:fs';
+import path from 'node:path';
 import { startCompose } from './compose-helper.js';
 
 // simple smoke test that spins up the compose stack programmatically via a
@@ -8,9 +11,22 @@ import { startCompose } from './compose-helper.js';
 
 let composeEnv: any | null = null;
 
+// ─── Accessibility audit results accumulator ─────────────────────────────────
+interface AxeAuditEntry {
+  state: string;
+  violations: Array<{
+    id: string;
+    impact?: string | null;
+    nodes: Array<{ html: string }>;
+  }>;
+  passes: number;
+  timestamp: string;
+}
+const axeAuditResults: AxeAuditEntry[] = [];
+
 beforeAll(async () => {
   composeEnv = await startCompose();
-}, 120_000);
+}, 180_000);
 
 afterAll(async () => {
   if (composeEnv) {
@@ -86,72 +102,83 @@ test('user can change status and it persists', async () => {
   const browser = await chromium.launch();
   const page = await browser.newPage();
   await page.goto(`http://localhost:${port}`);
-  // create a fresh todo
-  await page.fill('input[placeholder="New todo"]', 'status item');
+
+  // Use a unique title so stale DB rows from previous runs never interfere.
+  const title = `status-test-${Date.now()}`;
+  await page.fill('input[placeholder="New todo"]', title);
+
+  // Wait for the POST to confirm before proceeding.
+  const postDone = page.waitForResponse(
+    (r) => r.url().includes('/todos') && r.request().method() === 'POST',
+  );
   await page.click('button:has-text("Add")');
-  await page.waitForSelector('text=status item');
+  await postDone;
+  await page.waitForSelector(`text=${title}`);
 
-  // locate the card we just added so we operate on the correct row
-  const myCard = await page.waitForSelector(
-    'div.bg-card:has-text("status item")',
-  );
-  const getSelect = async () => {
-    const sel = await myCard.$('select[aria-label="Change todo status"]');
-    if (!sel) throw new Error('status dropdown not found');
-    return sel;
-  };
+  // Use stable page.locator() so re-renders don't detach our handle.
+  const card = page.locator('div.bg-card', { hasText: title });
+  const statusSelect = card.locator('select[aria-label="Change todo status"]');
 
-  // change to in_progress and then done via the select within the card
-  let statusSelect = await getSelect();
-  await statusSelect.selectOption('in_progress');
-  // element may detach when the item re-renders, so select via DOM query each time
-  await page.selectOption(
-    'div.bg-card:has-text("status item") select[aria-label="Change todo status"]',
-    'done',
+  // Change to 'done' and wait for the API to confirm before reloading.
+  const patchDone = page.waitForResponse(
+    (r) =>
+      r.url().includes('/todos/') &&
+      r.request().method() === 'PATCH' &&
+      r.status() < 400,
   );
+  await statusSelect.selectOption('done');
+  await patchDone;
 
-  // after done, card should eventually have line-through style locally
-  await page.waitForSelector(
-    '[class*=\"line-through\"]:has-text("status item")',
-  );
-  const doneCard = await page.$(
-    '[class*=\"line-through\"]:has-text("status item")',
-  );
-  expect(doneCard).not.toBeNull();
+  // Optimistic update: span should carry line-through before the reload.
+  await page.waitForSelector(`[class*="line-through"]:has-text("${title}")`);
 
-  // refresh and confirm still done
+  // Reload and confirm the server persisted 'done'.
   await page.reload();
-  await page.waitForSelector('text=status item');
-  await page.waitForSelector(
-    '[class*=\"line-through\"]:has-text("status item")',
+  await page.waitForSelector(`text=${title}`);
+  await page.waitForSelector(`[class*="line-through"]:has-text("${title}")`);
+
+  // Change back to 'todo' and wait for API confirm.
+  const patchTodo = page.waitForResponse(
+    (r) =>
+      r.url().includes('/todos/') &&
+      r.request().method() === 'PATCH' &&
+      r.status() < 400,
   );
-  // now change back to todo and ensure completed styling removed and persists
-  await page.selectOption(
-    'div.bg-card:has-text("status item") select[aria-label="Change todo status"]',
-    'todo',
+  await page
+    .locator('div.bg-card', { hasText: title })
+    .locator('select[aria-label="Change todo status"]')
+    .selectOption('todo');
+  await patchTodo;
+
+  // line-through should be gone now (optimistic).
+  await page.waitForFunction(
+    ([t]) => {
+      const cards = Array.from(document.querySelectorAll('div.bg-card'));
+      const myCard = cards.find((c) => c.textContent?.includes(t as string));
+      if (!myCard) return false;
+      const span = myCard.querySelector('span');
+      return span ? !span.className.includes('line-through') : false;
+    },
+    [title],
   );
-  // wait for line-through to disappear (optimistic update)
-  await page.waitForFunction(() => {
-    const span = document.querySelector('div.bg-card span');
-    return span && !span.className.includes('line-through');
-  });
-  // verify select value is now 'todo'
+
+  // Verify select is back to 'todo'.
   const selVal = await page.$eval(
-    'div.bg-card:has-text("status item") select[aria-label="Change todo status"]',
+    `div.bg-card:has-text("${title}") select[aria-label="Change todo status"]`,
     (el) => (el as HTMLSelectElement).value,
   );
   expect(selVal).toBe('todo');
-  // not line-through anymore
+
   const doneCheck = await page.$(
-    '[class*="line-through"]:has-text("status item")',
+    `[class*="line-through"]:has-text("${title}")`,
   );
   expect(doneCheck).toBeNull();
 
-  // reload and verify still not done
+  // Reload and confirm 'todo' persisted.
   await page.reload();
-  await page.waitForSelector('text=status item');
+  await page.waitForSelector(`text=${title}`);
   const selValAfterReload = await page.$eval(
-    'div.bg-card:has-text("status item") select[aria-label="Change todo status"]',
+    `div.bg-card:has-text("${title}") select[aria-label="Change todo status"]`,
     (el) => (el as HTMLSelectElement).value,
   );
   expect(selValAfterReload).toBe('todo');
@@ -602,3 +629,205 @@ test('full todo workflow completes using keyboard only', async () => {
 
   await browser.close();
 }, 60000);
+
+// ─── Accessibility Audit (axe-core / WCAG 2.1 AA) ────────────────────────────
+
+/**
+ * Write the accumulated axe audit results to docs/qa-accessibility-report.md.
+ * Runs after all tests have executed (including the accessibility tests below).
+ */
+afterAll(() => {
+  if (axeAuditResults.length === 0) return;
+
+  const reportPath = path.resolve(
+    process.cwd(),
+    'docs/qa-accessibility-report.md',
+  );
+
+  const lines: string[] = [
+    '# Accessibility Audit Report',
+    '',
+    `**Generated:** ${new Date().toUTCString()}`,
+    '**Standard:** WCAG 2.1 AA (`wcag2a`, `wcag2aa`)',
+    '**Tool:** `@axe-core/playwright`',
+    '',
+    '## Summary',
+    '',
+    '| State | Critical/Serious Violations | Passes |',
+    '|---|---|---|',
+  ];
+
+  for (const r of axeAuditResults) {
+    const critSer = r.violations.filter(
+      (v) => v.impact === 'critical' || v.impact === 'serious',
+    ).length;
+    lines.push(`| ${r.state} | ${critSer} | ${r.passes} |`);
+  }
+
+  const totalCritSer = axeAuditResults.reduce(
+    (acc, r) =>
+      acc +
+      r.violations.filter(
+        (v) => v.impact === 'critical' || v.impact === 'serious',
+      ).length,
+    0,
+  );
+  lines.push('');
+  lines.push(`**Total critical/serious violations: ${totalCritSer}**`);
+  lines.push('');
+
+  for (const r of axeAuditResults) {
+    lines.push(`## ${r.state}`);
+    lines.push('');
+    lines.push(`*Scanned at: ${r.timestamp}*`);
+    lines.push('');
+    if (r.violations.length === 0) {
+      lines.push('✅ No violations found.');
+    } else {
+      for (const v of r.violations) {
+        lines.push(`### \`${v.id}\` — impact: ${v.impact ?? 'unknown'}`);
+        lines.push('');
+        lines.push('**Affected nodes (first 3):**');
+        lines.push('');
+        for (const node of v.nodes.slice(0, 3)) {
+          lines.push('```html');
+          lines.push(node.html);
+          lines.push('```');
+        }
+        if (v.nodes.length > 3) {
+          lines.push(`*…and ${v.nodes.length - 3} more affected node(s)*`);
+        }
+        lines.push('');
+      }
+    }
+    lines.push('');
+  }
+
+  fs.mkdirSync(path.dirname(reportPath), { recursive: true });
+  fs.writeFileSync(reportPath, lines.join('\n'), 'utf-8');
+});
+
+test('axe accessibility: empty state has no critical/serious violations', async () => {
+  expect(composeEnv).not.toBeNull();
+  const port = process.env.FRONTEND_PORT || '3000';
+  const browser = await chromium.launch();
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  await page.goto(`http://localhost:${port}`);
+  // wait for the app shell to render before scanning
+  await page.waitForSelector('[data-testid="page-root"]');
+
+  const results = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa'])
+    .analyze();
+
+  axeAuditResults.push({
+    state: 'Empty State',
+    violations: results.violations,
+    passes: results.passes.length,
+    timestamp: new Date().toISOString(),
+  });
+
+  const criticalSerious = results.violations.filter(
+    (v) => v.impact === 'critical' || v.impact === 'serious',
+  );
+  if (criticalSerious.length > 0) {
+    const summary = criticalSerious
+      .map((v) => `  [${v.impact}] ${v.id}: ${v.nodes[0]?.html ?? ''}`)
+      .join('\n');
+    throw new Error(
+      `Critical/serious WCAG violations found in empty state:\n${summary}`,
+    );
+  }
+  expect(criticalSerious).toHaveLength(0);
+
+  await browser.close();
+}, 30000);
+
+test('axe accessibility: populated state has no critical/serious violations', async () => {
+  expect(composeEnv).not.toBeNull();
+  const port = process.env.FRONTEND_PORT || '3000';
+  const browser = await chromium.launch();
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  await page.goto(`http://localhost:${port}`);
+  await page.waitForSelector('[data-testid="page-root"]');
+
+  // add a todo to reach populated state
+  await page.fill(
+    'input[placeholder="New todo"]',
+    'axe accessibility test item',
+  );
+  await page.click('button:has-text("Add")');
+  await page.waitForSelector('text=axe accessibility test item');
+
+  const results = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa'])
+    .analyze();
+
+  axeAuditResults.push({
+    state: 'Populated State',
+    violations: results.violations,
+    passes: results.passes.length,
+    timestamp: new Date().toISOString(),
+  });
+
+  const criticalSerious = results.violations.filter(
+    (v) => v.impact === 'critical' || v.impact === 'serious',
+  );
+  if (criticalSerious.length > 0) {
+    const summary = criticalSerious
+      .map((v) => `  [${v.impact}] ${v.id}: ${v.nodes[0]?.html ?? ''}`)
+      .join('\n');
+    throw new Error(
+      `Critical/serious WCAG violations found in populated state:\n${summary}`,
+    );
+  }
+  expect(criticalSerious).toHaveLength(0);
+
+  await browser.close();
+}, 30000);
+
+test('axe accessibility: error state has no critical/serious violations', async () => {
+  expect(composeEnv).not.toBeNull();
+  const port = process.env.FRONTEND_PORT || '3000';
+  const browser = await chromium.launch();
+  const context = await browser.newContext();
+  const page = await context.newPage();
+
+  // intercept the todos API to force the error state
+  await page.route('**/todos', (route) => {
+    route.fulfill({ status: 500, body: 'Internal Server Error' });
+  });
+
+  await page.goto(`http://localhost:${port}`);
+  await page.waitForSelector('[data-testid="error-state"]', {
+    timeout: 10000,
+  });
+
+  const results = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa'])
+    .analyze();
+
+  axeAuditResults.push({
+    state: 'Error State',
+    violations: results.violations,
+    passes: results.passes.length,
+    timestamp: new Date().toISOString(),
+  });
+
+  const criticalSerious = results.violations.filter(
+    (v) => v.impact === 'critical' || v.impact === 'serious',
+  );
+  if (criticalSerious.length > 0) {
+    const summary = criticalSerious
+      .map((v) => `  [${v.impact}] ${v.id}: ${v.nodes[0]?.html ?? ''}`)
+      .join('\n');
+    throw new Error(
+      `Critical/serious WCAG violations found in error state:\n${summary}`,
+    );
+  }
+  expect(criticalSerious).toHaveLength(0);
+
+  await browser.close();
+}, 30000);

@@ -22,12 +22,12 @@ function badgeColor(status: TodoStatus) {
     case 'todo':
       return 'bg-gray-200 text-gray-900';
     case 'in_progress':
-      return 'bg-blue-500 text-white';
+      return 'bg-blue-700 text-white';
     case 'done':
-      return 'bg-green-600 text-white';
+      return 'bg-green-700 text-white';
     default:
       // highlight invalid state in red
-      return 'bg-red-500 text-white';
+      return 'bg-red-700 text-white';
   }
 }
 

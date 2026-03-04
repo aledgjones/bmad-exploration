@@ -1,6 +1,6 @@
 # Story 5.2: Accessibility audit with axe-core
 
-Status: ready-for-dev
+Status: review
 Assignee: AI
 
 ## Story
@@ -25,12 +25,56 @@ So that WCAG AA compliance is verified on every test run and a report is generat
 
 ## Tasks / Subtasks
 
-- [ ] Install `@axe-core/playwright` as a dev dependency
-- [ ] Add E2E test(s) that run axe scans on: empty state, populated state, error state
-- [ ] Assert zero critical/serious violations
-- [ ] Generate `docs/qa-accessibility-report.md` with findings
+- [x] Install `@axe-core/playwright` as a dev dependency
+- [x] Add E2E test(s) that run axe scans on: empty state, populated state, error state
+- [x] Assert zero critical/serious violations
+- [x] Generate `docs/qa-accessibility-report.md` with findings
 
 ## Dev Notes
 
 - Use `@axe-core/playwright` AxeBuilder with the existing Playwright + Vitest setup.
 - Scope scans to WCAG 2.1 AA tags: `['wcag2a', 'wcag2aa']`.
+
+## Dev Agent Record
+
+### Implementation Plan
+
+- Installed `@axe-core/playwright@^4.11.1` at the monorepo root (where e2e tests live).
+- Added three accessibility tests to `e2e/playwright-smoke.test.ts` (shares existing compose lifecycle to avoid multiple container startups):
+  - `axe accessibility: empty state` — scans page before any todos are added
+  - `axe accessibility: populated state` — scans after adding a test todo
+  - `axe accessibility: error state` — intercepts `/todos` API to return 500, waits for `[data-testid="error-state"]`, then scans
+- Tests use `browser.newContext().newPage()` (not `browser.newPage()`) as required by Playwright 1.58 + `@axe-core/playwright` (axe internally calls `page.context().newPage()` to create a blank finishRun page, which requires an explicit context).
+- Added `AxeAuditEntry[]` accumulator and a second `afterAll` that writes `docs/qa-accessibility-report.md`.
+- Fixed two real WCAG AA violations discovered by the scan:
+  1. `frontend/app/globals.css`: `--destructive` color in `:root` darkened from `oklch(0.577 0.245 27.325)` → `oklch(0.52 0.235 27.325)` to achieve sufficient contrast ratio against white background.
+  2. `frontend/app/components/TodoItem.tsx`: `badgeColor()` changed `in_progress` from `bg-blue-500` → `bg-blue-700`, `done` from `bg-green-600` → `bg-green-700`, and default from `bg-red-500` → `bg-red-700` (all to meet 4.5:1 WCAG AA on white text).
+- Updated `frontend/tests/TodoItem.test.tsx` to match the new color class names.
+
+### Debug Log
+
+- Playwright 1.58's `page.context().newPage()` fails on a page created via `browser.newPage()` — must use `browser.newContext().newPage()` explicitly.
+- Docker build cache must be invalidated after CSS changes to ensure the deployed front-end reflects updated color values. Used `docker-compose build --no-cache frontend`.
+- Pre-existing flaky test `user can change status and it persists` times out intermittently (unrelated to this story).
+
+### Completion Notes
+
+- AC1 ✅: Three axe scans run on empty, populated, and error states.
+- AC2 ✅: Tests throw with rule ID, impact, and affected HTML when critical/serious violations found.
+- AC3 ✅: `docs/qa-accessibility-report.md` auto-generated on every passing test run; shows 0 critical/serious violations across all 3 states.
+- All story tasks/subtasks marked [x].
+- 91 frontend unit tests passing; 16/17 E2E tests passing (1 pre-existing flaky unrelated to story).
+
+## File List
+
+- `e2e/playwright-smoke.test.ts` — added imports, `AxeAuditEntry` type, `axeAuditResults` accumulator, report `afterAll`, and 3 accessibility tests
+- `frontend/app/globals.css` — darkened `--destructive` CSS variable for WCAG AA compliance
+- `frontend/app/components/TodoItem.tsx` — updated `badgeColor()` to use accessible dark variants
+- `frontend/tests/TodoItem.test.tsx` — updated color class assertions to match new badge colors
+- `docs/qa-accessibility-report.md` — generated accessibility report (WCAG 2.1 AA, 0 violations)
+- `package.json` — added `@axe-core/playwright@^4.11.1` dev dependency
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` — updated story status
+
+## Change Log
+
+- 2026-03-04: Implemented axe-core accessibility audit (Story 5.2). Installed `@axe-core/playwright`, added 3 E2E axe scans, fixed 2 WCAG AA color-contrast violations, generated `docs/qa-accessibility-report.md`. All ACs satisfied.

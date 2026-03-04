@@ -33,8 +33,8 @@ describe('TodoItem component', () => {
 
   it.each([
     ['todo', 'bg-gray-200'],
-    ['in_progress', 'bg-blue-500'],
-    ['done', 'bg-green-600'],
+    ['in_progress', 'bg-blue-700'],
+    ['done', 'bg-green-700'],
   ])('renders badge color %s -> %s', (status, cls) => {
     const t: Todo = { ...baseTodo, status: status as any };
     render(<TodoItem todo={t} onStatusChange={vi.fn()} onDelete={vi.fn()} onEdit={vi.fn()} />);
@@ -46,7 +46,7 @@ describe('TodoItem component', () => {
     const t: Todo = { ...baseTodo, status: 'unknown' as any };
     render(<TodoItem todo={t} onStatusChange={vi.fn()} onDelete={vi.fn()} onEdit={vi.fn()} />);
     const select = screen.getByLabelText(/change todo status/i);
-    expect(select).toHaveClass('bg-red-500');
+    expect(select).toHaveClass('bg-red-700');
   });
 
   it('renders delete button with correct aria-label', () => {
