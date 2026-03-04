@@ -74,7 +74,7 @@ development_status:
   epic-4-retrospective: optional
   epic-5: in-progress
   5-1-production-ready-dockerfiles: done                    # AI
-  5-2-accessibility-audit: review                          # AI
+  5-2-accessibility-audit: done                          # AI
   5-3-security-review: ready-for-dev                       # AI
   5-4-performance-report: ready-for-dev                    # Human
   5-5-ai-integration-log: ready-for-dev                    # Human

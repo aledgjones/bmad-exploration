@@ -38,11 +38,13 @@ test('frontend homepage reachable through compose stack', async () => {
   expect(composeEnv).not.toBeNull();
   const port = process.env.FRONTEND_PORT || '3000';
   const browser = await chromium.launch();
-  const page = await browser.newPage();
+  const context = await browser.newContext();
+  const page = await context.newPage();
   await page.goto(`http://localhost:${port}`);
   // basic assertion: page has some content
   const text = await page.textContent('body');
   expect(text).toBeTruthy();
+  await context.close();
   await browser.close();
 });
 
@@ -53,7 +55,8 @@ test('user can create a todo via UI', async () => {
   expect(composeEnv).not.toBeNull();
   const port = process.env.FRONTEND_PORT || '3000';
   const browser = await chromium.launch();
-  const page = await browser.newPage();
+  const context = await browser.newContext();
+  const page = await context.newPage();
   await page.goto(`http://localhost:${port}`);
   // intercept network to verify POST actually happened
   let postCount = 0;
@@ -74,6 +77,7 @@ test('user can create a todo via UI', async () => {
   expect(cardExists).not.toBeNull();
   const bodyText = await page.textContent('body');
   expect(bodyText).toContain('walk the dog');
+  await context.close();
   await browser.close();
 }, 30000);
 
@@ -82,7 +86,8 @@ test('todos persist after page refresh', async () => {
   expect(composeEnv).not.toBeNull();
   const port = process.env.FRONTEND_PORT || '3000';
   const browser = await chromium.launch();
-  const page = await browser.newPage();
+  const context = await browser.newContext();
+  const page = await context.newPage();
   await page.goto(`http://localhost:${port}`);
   // create an item
   await page.fill('input[placeholder="New todo"]', 'persist item');
@@ -91,6 +96,7 @@ test('todos persist after page refresh', async () => {
   // reload and confirm
   await page.reload();
   await page.waitForSelector('text=persist item');
+  await context.close();
   await browser.close();
 });
 
@@ -100,7 +106,8 @@ test('user can change status and it persists', async () => {
   expect(composeEnv).not.toBeNull();
   const port = process.env.FRONTEND_PORT || '3000';
   const browser = await chromium.launch();
-  const page = await browser.newPage();
+  const context = await browser.newContext();
+  const page = await context.newPage();
   await page.goto(`http://localhost:${port}`);
 
   // Use a unique title so stale DB rows from previous runs never interfere.
@@ -182,6 +189,7 @@ test('user can change status and it persists', async () => {
     (el) => (el as HTMLSelectElement).value,
   );
   expect(selValAfterReload).toBe('todo');
+  await context.close();
   await browser.close();
 }, 60000);
 
@@ -191,7 +199,8 @@ test('user can delete a todo and it stays deleted after reload', async () => {
   expect(composeEnv).not.toBeNull();
   const port = process.env.FRONTEND_PORT || '3000';
   const browser = await chromium.launch();
-  const page = await browser.newPage();
+  const context = await browser.newContext();
+  const page = await context.newPage();
   await page.goto(`http://localhost:${port}`);
 
   // create a todo to delete
@@ -222,6 +231,7 @@ test('user can delete a todo and it stays deleted after reload', async () => {
   const found = await page.$('text=delete me');
   expect(found).toBeNull();
 
+  await context.close();
   await browser.close();
 }, 60000);
 
@@ -231,7 +241,8 @@ test('user can edit a todo text and it persists after reload', async () => {
   expect(composeEnv).not.toBeNull();
   const port = process.env.FRONTEND_PORT || '3000';
   const browser = await chromium.launch();
-  const page = await browser.newPage();
+  const context = await browser.newContext();
+  const page = await context.newPage();
   await page.goto(`http://localhost:${port}`);
 
   // create a todo to edit
@@ -260,6 +271,7 @@ test('user can edit a todo text and it persists after reload', async () => {
   await page.reload();
   await page.waitForSelector('text=edited text');
 
+  await context.close();
   await browser.close();
 }, 60000);
 
@@ -267,7 +279,8 @@ test('empty text submission is rejected and edit mode remains active', async () 
   expect(composeEnv).not.toBeNull();
   const port = process.env.FRONTEND_PORT || '3000';
   const browser = await chromium.launch();
-  const page = await browser.newPage();
+  const context = await browser.newContext();
+  const page = await context.newPage();
   await page.goto(`http://localhost:${port}`);
 
   await page.fill('input[placeholder="New todo"]', 'empty test');
@@ -294,6 +307,7 @@ test('empty text submission is rejected and edit mode remains active', async () 
   await input.press('Escape');
   await page.waitForSelector('text=empty test');
 
+  await context.close();
   await browser.close();
 }, 60000);
 
@@ -301,7 +315,8 @@ test('user can cancel edit with Escape and text reverts', async () => {
   expect(composeEnv).not.toBeNull();
   const port = process.env.FRONTEND_PORT || '3000';
   const browser = await chromium.launch();
-  const page = await browser.newPage();
+  const context = await browser.newContext();
+  const page = await context.newPage();
   await page.goto(`http://localhost:${port}`);
 
   // create a todo
@@ -328,6 +343,7 @@ test('user can cancel edit with Escape and text reverts', async () => {
   const modified = await page.$('text=should not save');
   expect(modified).toBeNull();
 
+  await context.close();
   await browser.close();
 }, 60000);
 
@@ -337,7 +353,8 @@ test('done items have reduced opacity and removing done status removes it', asyn
   expect(composeEnv).not.toBeNull();
   const port = process.env.FRONTEND_PORT || '3000';
   const browser = await chromium.launch();
-  const page = await browser.newPage();
+  const context = await browser.newContext();
+  const page = await context.newPage();
   await page.goto(`http://localhost:${port}`);
 
   // create a todo
@@ -392,6 +409,7 @@ test('done items have reduced opacity and removing done status removes it', asyn
     { timeout: 10000 },
   );
 
+  await context.close();
   await browser.close();
 }, 60000);
 
@@ -401,7 +419,8 @@ test('empty state shows when no todos exist and toggles on add/delete', async ()
   expect(composeEnv).not.toBeNull();
   const port = process.env.FRONTEND_PORT || '3000';
   const browser = await chromium.launch();
-  const page = await browser.newPage();
+  const context = await browser.newContext();
+  const page = await context.newPage();
 
   // accept all confirmation dialogs (for delete)
   page.on('dialog', (dialog) => dialog.accept());
@@ -453,6 +472,7 @@ test('empty state shows when no todos exist and toggles on add/delete', async ()
   const reEmptyText = await page.textContent('[data-testid="empty-state"]');
   expect(reEmptyText).toContain('No tasks yet');
 
+  await context.close();
   await browser.close();
 }, 60000);
 
@@ -461,7 +481,8 @@ test('loading spinner appears during initial data fetch', async () => {
   expect(composeEnv).not.toBeNull();
   const port = process.env.FRONTEND_PORT || '3000';
   const browser = await chromium.launch();
-  const page = await browser.newPage();
+  const context = await browser.newContext();
+  const page = await context.newPage();
 
   // intercept GET /todos to delay the response so the spinner is observable
   await page.route('**/todos', async (route, request) => {
@@ -482,6 +503,7 @@ test('loading spinner appears during initial data fetch', async () => {
     timeout: 5000,
   });
 
+  await context.close();
   await browser.close();
 }, 30000);
 
@@ -491,7 +513,8 @@ test('status change reflects instantly before server responds', async () => {
   expect(composeEnv).not.toBeNull();
   const port = process.env.FRONTEND_PORT || '3000';
   const browser = await chromium.launch();
-  const page = await browser.newPage();
+  const context = await browser.newContext();
+  const page = await context.newPage();
   await page.goto(`http://localhost:${port}`);
 
   // create a todo to work with
@@ -526,6 +549,7 @@ test('status change reflects instantly before server responds', async () => {
 
   // release the held PATCH so the server can respond and test can clean up
   releasePatch();
+  await context.close();
   await browser.close();
 }, 30000);
 
@@ -533,7 +557,8 @@ test('todo disappears instantly on delete before server responds', async () => {
   expect(composeEnv).not.toBeNull();
   const port = process.env.FRONTEND_PORT || '3000';
   const browser = await chromium.launch();
-  const page = await browser.newPage();
+  const context = await browser.newContext();
+  const page = await context.newPage();
   await page.goto(`http://localhost:${port}`);
 
   // create a todo to delete
@@ -569,6 +594,7 @@ test('todo disappears instantly on delete before server responds', async () => {
 
   // release so server can respond and browser can close cleanly
   releaseDelete();
+  await context.close();
   await browser.close();
 }, 30000);
 
@@ -578,7 +604,8 @@ test('full todo workflow completes using keyboard only', async () => {
   expect(composeEnv).not.toBeNull();
   const port = process.env.FRONTEND_PORT || '3000';
   const browser = await chromium.launch();
-  const page = await browser.newPage();
+  const context = await browser.newContext();
+  const page = await context.newPage();
   await page.goto(`http://localhost:${port}`);
 
   // wait for page to be ready
@@ -627,6 +654,7 @@ test('full todo workflow completes using keyboard only', async () => {
     timeout: 5000,
   });
 
+  await context.close();
   await browser.close();
 }, 60000);
 
@@ -640,8 +668,8 @@ afterAll(() => {
   if (axeAuditResults.length === 0) return;
 
   const reportPath = path.resolve(
-    process.cwd(),
-    'docs/qa-accessibility-report.md',
+    path.dirname(new URL(import.meta.url).pathname),
+    '../docs/qa-accessibility-report.md',
   );
 
   const lines: string[] = [
@@ -713,35 +741,38 @@ test('axe accessibility: empty state has no critical/serious violations', async 
   const browser = await chromium.launch();
   const context = await browser.newContext();
   const page = await context.newPage();
-  await page.goto(`http://localhost:${port}`);
-  // wait for the app shell to render before scanning
-  await page.waitForSelector('[data-testid="page-root"]');
+  try {
+    await page.goto(`http://localhost:${port}`);
+    // wait for the app shell to render before scanning
+    await page.waitForSelector('[data-testid="page-root"]');
 
-  const results = await new AxeBuilder({ page })
-    .withTags(['wcag2a', 'wcag2aa'])
-    .analyze();
+    const results = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa'])
+      .analyze();
 
-  axeAuditResults.push({
-    state: 'Empty State',
-    violations: results.violations,
-    passes: results.passes.length,
-    timestamp: new Date().toISOString(),
-  });
+    axeAuditResults.push({
+      state: 'Empty State',
+      violations: results.violations,
+      passes: results.passes.length,
+      timestamp: new Date().toISOString(),
+    });
 
-  const criticalSerious = results.violations.filter(
-    (v) => v.impact === 'critical' || v.impact === 'serious',
-  );
-  if (criticalSerious.length > 0) {
-    const summary = criticalSerious
-      .map((v) => `  [${v.impact}] ${v.id}: ${v.nodes[0]?.html ?? ''}`)
-      .join('\n');
-    throw new Error(
-      `Critical/serious WCAG violations found in empty state:\n${summary}`,
+    const criticalSerious = results.violations.filter(
+      (v) => v.impact === 'critical' || v.impact === 'serious',
     );
+    if (criticalSerious.length > 0) {
+      const summary = criticalSerious
+        .map((v) => `  [${v.impact}] ${v.id}: ${v.nodes[0]?.html ?? ''}`)
+        .join('\n');
+      throw new Error(
+        `Critical/serious WCAG violations found in empty state:\n${summary}`,
+      );
+    }
+    expect(criticalSerious).toHaveLength(0);
+  } finally {
+    await context.close();
+    await browser.close();
   }
-  expect(criticalSerious).toHaveLength(0);
-
-  await browser.close();
 }, 30000);
 
 test('axe accessibility: populated state has no critical/serious violations', async () => {
@@ -750,42 +781,45 @@ test('axe accessibility: populated state has no critical/serious violations', as
   const browser = await chromium.launch();
   const context = await browser.newContext();
   const page = await context.newPage();
-  await page.goto(`http://localhost:${port}`);
-  await page.waitForSelector('[data-testid="page-root"]');
+  try {
+    await page.goto(`http://localhost:${port}`);
+    await page.waitForSelector('[data-testid="page-root"]');
 
-  // add a todo to reach populated state
-  await page.fill(
-    'input[placeholder="New todo"]',
-    'axe accessibility test item',
-  );
-  await page.click('button:has-text("Add")');
-  await page.waitForSelector('text=axe accessibility test item');
-
-  const results = await new AxeBuilder({ page })
-    .withTags(['wcag2a', 'wcag2aa'])
-    .analyze();
-
-  axeAuditResults.push({
-    state: 'Populated State',
-    violations: results.violations,
-    passes: results.passes.length,
-    timestamp: new Date().toISOString(),
-  });
-
-  const criticalSerious = results.violations.filter(
-    (v) => v.impact === 'critical' || v.impact === 'serious',
-  );
-  if (criticalSerious.length > 0) {
-    const summary = criticalSerious
-      .map((v) => `  [${v.impact}] ${v.id}: ${v.nodes[0]?.html ?? ''}`)
-      .join('\n');
-    throw new Error(
-      `Critical/serious WCAG violations found in populated state:\n${summary}`,
+    // add a todo to reach populated state
+    await page.fill(
+      'input[placeholder="New todo"]',
+      'axe accessibility test item',
     );
-  }
-  expect(criticalSerious).toHaveLength(0);
+    await page.click('button:has-text("Add")');
+    await page.waitForSelector('text=axe accessibility test item');
 
-  await browser.close();
+    const results = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa'])
+      .analyze();
+
+    axeAuditResults.push({
+      state: 'Populated State',
+      violations: results.violations,
+      passes: results.passes.length,
+      timestamp: new Date().toISOString(),
+    });
+
+    const criticalSerious = results.violations.filter(
+      (v) => v.impact === 'critical' || v.impact === 'serious',
+    );
+    if (criticalSerious.length > 0) {
+      const summary = criticalSerious
+        .map((v) => `  [${v.impact}] ${v.id}: ${v.nodes[0]?.html ?? ''}`)
+        .join('\n');
+      throw new Error(
+        `Critical/serious WCAG violations found in populated state:\n${summary}`,
+      );
+    }
+    expect(criticalSerious).toHaveLength(0);
+  } finally {
+    await context.close();
+    await browser.close();
+  }
 }, 30000);
 
 test('axe accessibility: error state has no critical/serious violations', async () => {
@@ -794,40 +828,81 @@ test('axe accessibility: error state has no critical/serious violations', async 
   const browser = await chromium.launch();
   const context = await browser.newContext();
   const page = await context.newPage();
+  try {
+    // intercept the todos API to force the error state
+    await page.route('**/todos', (route) => {
+      route.fulfill({ status: 500, body: 'Internal Server Error' });
+    });
 
-  // intercept the todos API to force the error state
-  await page.route('**/todos', (route) => {
-    route.fulfill({ status: 500, body: 'Internal Server Error' });
-  });
+    await page.goto(`http://localhost:${port}`);
+    await page.waitForSelector('[data-testid="error-state"]', {
+      timeout: 10000,
+    });
 
-  await page.goto(`http://localhost:${port}`);
-  await page.waitForSelector('[data-testid="error-state"]', {
-    timeout: 10000,
-  });
+    const results = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa'])
+      .analyze();
 
-  const results = await new AxeBuilder({ page })
-    .withTags(['wcag2a', 'wcag2aa'])
-    .analyze();
+    axeAuditResults.push({
+      state: 'Error State',
+      violations: results.violations,
+      passes: results.passes.length,
+      timestamp: new Date().toISOString(),
+    });
 
-  axeAuditResults.push({
-    state: 'Error State',
-    violations: results.violations,
-    passes: results.passes.length,
-    timestamp: new Date().toISOString(),
-  });
-
-  const criticalSerious = results.violations.filter(
-    (v) => v.impact === 'critical' || v.impact === 'serious',
-  );
-  if (criticalSerious.length > 0) {
-    const summary = criticalSerious
-      .map((v) => `  [${v.impact}] ${v.id}: ${v.nodes[0]?.html ?? ''}`)
-      .join('\n');
-    throw new Error(
-      `Critical/serious WCAG violations found in error state:\n${summary}`,
+    const criticalSerious = results.violations.filter(
+      (v) => v.impact === 'critical' || v.impact === 'serious',
     );
+    if (criticalSerious.length > 0) {
+      const summary = criticalSerious
+        .map((v) => `  [${v.impact}] ${v.id}: ${v.nodes[0]?.html ?? ''}`)
+        .join('\n');
+      throw new Error(
+        `Critical/serious WCAG violations found in error state:\n${summary}`,
+      );
+    }
+    expect(criticalSerious).toHaveLength(0);
+  } finally {
+    await context.close();
+    await browser.close();
   }
-  expect(criticalSerious).toHaveLength(0);
+}, 30000);
 
-  await browser.close();
+test('axe accessibility: dark mode has no critical/serious violations', async () => {
+  expect(composeEnv).not.toBeNull();
+  const port = process.env.FRONTEND_PORT || '3000';
+  const browser = await chromium.launch();
+  const context = await browser.newContext({ colorScheme: 'dark' });
+  const page = await context.newPage();
+  try {
+    await page.goto(`http://localhost:${port}`);
+    await page.waitForSelector('[data-testid="page-root"]');
+
+    const results = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa'])
+      .analyze();
+
+    axeAuditResults.push({
+      state: 'Dark Mode',
+      violations: results.violations,
+      passes: results.passes.length,
+      timestamp: new Date().toISOString(),
+    });
+
+    const criticalSerious = results.violations.filter(
+      (v) => v.impact === 'critical' || v.impact === 'serious',
+    );
+    if (criticalSerious.length > 0) {
+      const summary = criticalSerious
+        .map((v) => `  [${v.impact}] ${v.id}: ${v.nodes[0]?.html ?? ''}`)
+        .join('\n');
+      throw new Error(
+        `Critical/serious WCAG violations found in dark mode:\n${summary}`,
+      );
+    }
+    expect(criticalSerious).toHaveLength(0);
+  } finally {
+    await context.close();
+    await browser.close();
+  }
 }, 30000);
