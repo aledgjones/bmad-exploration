@@ -52,12 +52,12 @@ Additional commands will be added as services are scaffolded.
 
 ## Test Coverage
 
-Both frontend and backend are configured to collect coverage with Vitest using the v8 provider. Each package enforces a **90% threshold** (lines, statements, functions, branches) natively via `coverage.thresholds` in its `vitest.config.ts` — Vitest will fail with a non-zero exit code if any metric falls below 90%.
+Both frontend and backend are configured to collect coverage with Vitest using the v8 provider. Each package enforces a **80% threshold** (lines, statements, functions, branches) natively via `coverage.thresholds` in its `vitest.config.ts` — Vitest will fail with a non-zero exit code if any metric falls below 80%.
 
 You can run coverage for both packages with:
 
 ```bash
-npm run coverage        # runs frontend & backend tests with coverage; fails if either drops below 90%
+npm run coverage        # runs frontend & backend tests with coverage; fails if either drops below 80%
 ```
 
 To run a single package:
