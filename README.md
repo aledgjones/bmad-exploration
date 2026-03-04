@@ -1,5 +1,20 @@
 # bmad-todo Monorepo
 
+> **Learning project** — This repository was built as a hands-on exploration of the [BMAD method](https://github.com/bmad-method/BMAD-METHOD) and AI-assisted software development practices.
+
+## About This Project
+
+**BMAD** is a structured, spec-first methodology for building software with AI agents. Rather than using AI in an ad-hoc way, BMAD defines a set of specialised agent personas — Analyst, Product Manager, Architect, UX Designer, Scrum Master, Developer, QA — each responsible for a specific phase of the development lifecycle. Every phase produces explicit, version-controlled artifacts (PRD, architecture docs, epics, stories, sprint plans) that accumulate as project context and guide subsequent phases.
+
+This project built a full-stack Todo application from scratch following the complete BMAD lifecycle: requirements analysis → planning → solutioning → implementation → QA. All planning and implementation artifacts are preserved in `_bmad-output/`.
+
+**Key deliverables and learning outputs:**
+
+- **QA reports** (accessibility, security, performance, summary) — see [`docs/`](docs/)
+- **AI integration log** and **BMAD methodology write-up** — see [`docs/ai-integration-log.md`](docs/ai-integration-log.md) and [`docs/bmad-methodology.md`](docs/bmad-methodology.md)
+
+---
+
 This repository is structured as a monorepo containing two primary services:
 
 - `frontend/` – Next.js application (TypeScript, Tailwind, ESLint, Vitest) for the UI.

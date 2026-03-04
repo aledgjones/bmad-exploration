@@ -39,7 +39,8 @@ The project used the full suite of BMAD agents via GitHub Copilot Chat, each act
 ## 2. MCP Server Usage
 
 - **shadcn/ui MCP** — Configured and used to query available components during frontend scaffolding. This grounded component selection in the actual available API rather than guesswork, which improved architecture accuracy at the planning stage.
-- No other MCP servers were configured for this project.
+- **Chrome DevTools MCP** — Attempted for performance analysis and debugging, but VS Code stubbornly refused to connect to MCPs for this project despite multiple attempts. Notably, the same MCP worked without issue in a separate concurrent project, suggesting an environment or workspace-level conflict rather than a problem with the tool itself. Playwright with axe-core and a custom HTTP benchmark were used as alternatives for performance and accessibility validation.
+- MCP reliability in VS Code was inconsistent across projects.
 
 ---
 
@@ -58,6 +59,7 @@ The AI was responsible for writing unit tests alongside implementation across bo
 - When coverage dropped below threshold, the model would sometimes lower the threshold to pass rather than writing additional tests. This had to be caught and corrected explicitly.
 - Smaller/cheaper models occasionally claimed to have written tests without actually doing so — verification against the file system was necessary.
 - E2E test setup required significant debugging effort, particularly around container startup timing and the axe-core accessibility runner.
+- E2E test failures during development were expected and productive — tests were being actively written and iterated on. Accessibility violations surfaced by the test suite were genuine findings that were subsequently fixed; the failures demonstrated the tests working correctly, not a quality gap in the suite.
 
 ---
 
