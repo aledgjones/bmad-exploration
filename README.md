@@ -11,7 +11,7 @@ This project built a full-stack Todo application from scratch following the comp
 **Key deliverables and learning outputs:**
 
 - **QA reports** (accessibility, security, performance, summary) — see [`docs/`](docs/)
-- **AI integration log** and **BMAD methodology write-up** — see [`docs/ai-integration-log.md`](docs/ai-integration-log.md) and [`docs/bmad-methodology.md`](docs/bmad-methodology.md)
+- **AI integration log** and **BMAD methodology write-up** — see [`learning-logs/ai-integration-log.md`](learning-logs/ai-integration-log.md) and [`learning-logs/bmad-methodology.md`](learning-logs/bmad-methodology.md)
 
 ---
 
